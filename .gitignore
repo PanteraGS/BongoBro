@@ -1,0 +1,6 @@
+# build outputs (the exe is published through GitHub Releases, not committed)
+*.exe
+*.exe.download
+*.pdb
+*.tmp
+icon.ico
