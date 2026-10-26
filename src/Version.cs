@@ -3,13 +3,13 @@ using System.Reflection;
 
 [assembly: AssemblyTitle("BongoBro")]
 [assembly: AssemblyProduct("BongoBro")]
-[assembly: AssemblyVersion("1.1.1")]
-[assembly: AssemblyFileVersion("1.1.1")]
+[assembly: AssemblyVersion("1.2.0")]
+[assembly: AssemblyFileVersion("1.2.0")]
 
 namespace BongoBro
 {
     static partial class Program
     {
-        public const string Version = "1.1.1";
+        public const string Version = "1.2.0";
     }
 }

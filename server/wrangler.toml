@@ -1,0 +1,13 @@
+name = "bongobro-leaderboard"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+# recompute the ranking twice a day (00:00 and 12:00 UTC)
+[triggers]
+crons = ["0 0,12 * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bongobro-leaderboard"
+database_id = "8fdc8581-6691-477e-a63a-b83b97979a1c"

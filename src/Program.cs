@@ -90,13 +90,13 @@ namespace BongoBro
             if (which == "loot-gold") { Game.S.GoldBoxes = 2; which = "loot"; }
             if (Environment.GetEnvironmentVariable("BONGO_PREVIEW_CHAR") == Characters.Vlad) Game.S.Character = Characters.Vlad;
             Form f = which == "loot" ? (Form)new LootForm() : which == "shop" ? (Form)new ShopForm()
-                : which == "update" ? (Form)new UpdateForm() : new AchievementsForm();
+                : which == "update" ? (Form)new UpdateForm() : which == "board" ? (Form)new LeaderboardForm() : new AchievementsForm();
             f.StartPosition = FormStartPosition.Manual;
             f.Location = new Point(-5000, -5000);
             f.ShowInTaskbar = false;
             f.Show();
             // the update window asks GitHub asynchronously: give it a few seconds
-            for (int i = 0; i < (which == "update" ? 120 : 1); i++) { Application.DoEvents(); Thread.Sleep(50); }
+            for (int i = 0; i < (which == "update" || which == "board" ? 120 : 1); i++) { Application.DoEvents(); Thread.Sleep(50); }
             using (Bitmap b = new Bitmap(f.Width, f.Height))
             {
                 f.DrawToBitmap(b, new Rectangle(0, 0, f.Width, f.Height));

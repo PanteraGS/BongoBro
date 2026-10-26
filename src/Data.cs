@@ -188,6 +188,8 @@ namespace BongoBro
     public class SaveData
     {
         public string Character = Characters.Yura;
+        // leaderboard identity: random id + secret token proving the entry is ours; Nick = null means not taking part
+        public string PlayerId, PlayerToken, Nick;
         public long Keys, Clicks;
         public int Boxes, Opened, GoldBoxes;
         public HashSet<string> Owned = new HashSet<string>();
@@ -263,6 +265,9 @@ namespace BongoBro
                 sb.Append("streak=").Append(Streak.ToString(ci)).Append('\n');
                 sb.Append("lastday=").Append(LastDay ?? "").Append('\n');
                 sb.Append("char=").Append(Character).Append('\n');
+                sb.Append("pid=").Append(PlayerId ?? "").Append('\n');
+                sb.Append("ptoken=").Append(PlayerToken ?? "").Append('\n');
+                sb.Append("nick=").Append(Nick ?? "").Append('\n');
                 string tmp = FilePath + ".tmp";
                 File.WriteAllText(tmp, sb.ToString(), Encoding.UTF8);
                 if (File.Exists(FilePath))
@@ -326,6 +331,9 @@ namespace BongoBro
                         case "streak": int.TryParse(v, NumberStyles.Integer, ci, out d.Streak); break;
                         case "lastday": d.LastDay = id; break;
                         case "char": d.Character = Characters.Normalize(v); break;
+                        case "pid": d.PlayerId = id; break;
+                        case "ptoken": d.PlayerToken = id; break;
+                        case "nick": d.Nick = id; break;
                     }
                 }
                 if (d.Scale < 0.15f || d.Scale > 2f) d.Scale = 0.8f;

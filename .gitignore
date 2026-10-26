@@ -4,3 +4,5 @@
 *.pdb
 *.tmp
 icon.ico
+node_modules/
+.wrangler/

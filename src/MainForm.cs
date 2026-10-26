@@ -40,6 +40,8 @@ namespace BongoBro
         readonly Queue<int> keyTimes = new Queue<int>();
         int lastDayCheck;
         AchievementsForm ach;
+        LeaderboardForm lb;
+        int lastLbSubmit = Environment.TickCount - Leaderboard.SubmitEveryMs + 20000; // first report ~20 s after start
         ShopForm shop;
         LootForm loot;
 
@@ -234,6 +236,12 @@ namespace BongoBro
             ShowForm(upd);
         }
 
+        public void OpenLeaderboard()
+        {
+            if (lb == null || lb.IsDisposed) lb = new LeaderboardForm();
+            ShowForm(lb);
+        }
+
         public void OpenAchievements()
         {
             if (ach == null || ach.IsDisposed) ach = new AchievementsForm();
@@ -290,6 +298,11 @@ namespace BongoBro
             if (counter != null) counter.Tick(boxFxUntil, fxText, pose.T, th != null && th.Rarity == Rarity.Immortal);
             if (now - lastDayCheck > 60000) { lastDayCheck = now; Game.TouchDay(); }
             if (now - lastUpdateCheck > 6 * 3600 * 1000) CheckForUpdates();
+            if (Game.S.Nick != null && now - lastLbSubmit > Leaderboard.SubmitEveryMs && Game.S.Keys != Leaderboard.LastSubmittedKeys)
+            {
+                lastLbSubmit = now;
+                Leaderboard.SubmitAsync(this, Game.S.Nick, err => { });
+            }
             if (Game.Dirty && now - lastSave > 15000)
             {
                 Game.Save();
@@ -442,6 +455,7 @@ namespace BongoBro
             miBox = new ToolStripMenuItem("Открыть лутбокс", Ui.MenuIcon("gift", ip), delegate { OpenLoot(); });
             ToolStripMenuItem miShop = new ToolStripMenuItem("Гардероб и коллекция", Ui.MenuIcon("shirt", ip), delegate { OpenShop(); });
             miAch = new ToolStripMenuItem("Достижения", Ui.MenuIcon("trophy", ip), delegate { OpenAchievements(); });
+            ToolStripMenuItem miBoard = new ToolStripMenuItem("Лидерборд", Ui.MenuIcon("podium", ip), delegate { OpenLeaderboard(); });
             miChar = new ToolStripMenuItem("Персонаж", Ui.MenuIcon("user", ip));
             foreach (string id in Characters.Ids)
             {
@@ -491,7 +505,7 @@ namespace BongoBro
             ToolStripMenuItem miExit = new ToolStripMenuItem("Выход", Ui.MenuIcon("exit", ip), delegate { Close(); });
 
             menu.Items.AddRange(new ToolStripItem[] {
-                header, new ToolStripSeparator(), miChar, miBox, miShop, miAch, new ToolStripSeparator(),
+                header, new ToolStripSeparator(), miChar, miBox, miShop, miAch, miBoard, new ToolStripSeparator(),
                 charSlider.Host, counterSlider.Host, new ToolStripSeparator(),
                 tAuto, tTop, tCounter, tShown, miReset, new ToolStripSeparator(), miUpdate, miExit });
 

@@ -176,6 +176,11 @@ namespace BongoBro
                             using (Pen hp = Art.P(Gold, 1.5f)) { g.DrawArc(hp, 1.5f, 3.5f, 5, 5, 90, 180); g.DrawArc(hp, 13.5f, 3.5f, 5, 5, 270, 180); }
                             using (SolidBrush br = new SolidBrush(Gold)) { g.FillRectangle(br, 9, 12, 2, 3); g.FillRectangle(br, 6, 15, 8, 2.5f); }
                             break;
+                        case "podium":
+                            using (SolidBrush b1 = new SolidBrush(Gold)) g.FillRectangle(b1, 7.5f, 4, 5, 13.5f);
+                            using (SolidBrush b2 = new SolidBrush(Color.FromArgb(200, 208, 222))) g.FillRectangle(b2, 2, 8, 5, 9.5f);
+                            using (SolidBrush b3 = new SolidBrush(Color.FromArgb(214, 136, 74))) g.FillRectangle(b3, 13, 10.5f, 5, 7);
+                            break;
                         case "update":
                             using (SolidBrush br = new SolidBrush(Good)) g.FillEllipse(br, 2, 2, 16, 16);
                             using (Pen w = Art.P(Color.White, 2f))
