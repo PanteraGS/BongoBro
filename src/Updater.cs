@@ -108,7 +108,7 @@ namespace BongoBro
                 if (e.Error != null || e.Cancelled) { fail("Не удалось скачать: " + (e.Error != null ? e.Error.Message : "отменено")); return; }
                 string err = Swap(exe, tmp);
                 if (err != null) { fail(err); return; }
-                Game.Save();
+                if (Game.S != null) Game.Save();
                 try { Process.Start(exe, "--updated"); } catch (Exception ex) { fail("Обновление установлено, но не удалось перезапустить: " + ex.Message); return; }
                 Application.Exit();
             };

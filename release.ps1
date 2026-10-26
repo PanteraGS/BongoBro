@@ -1,4 +1,4 @@
-# Publishes a new BongoBro version to GitHub Releases. Users get an "update" button.
+﻿# Publishes a new BongoBro version to GitHub Releases. Users get an "update" button.
 #   powershell -File release.ps1 -Version 1.1.0 -Notes "Новые шапки"
 param(
     [Parameter(Mandatory = $true)][string]$Version,
@@ -18,6 +18,7 @@ $text = [IO.File]::ReadAllText($versionFile)
 $text = $text -replace 'AssemblyVersion\("[^"]*"\)', "AssemblyVersion(""$Version"")"
 $text = $text -replace 'AssemblyFileVersion\("[^"]*"\)', "AssemblyFileVersion(""$Version"")"
 $text = $text -replace 'Version = "[^"]*"', "Version = ""$Version"""
+$text = $text -replace "`r?`n", "`r`n"
 [IO.File]::WriteAllText($versionFile, $text, (New-Object Text.UTF8Encoding $false))
 
 # 2. build

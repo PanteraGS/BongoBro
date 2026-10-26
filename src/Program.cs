@@ -22,6 +22,7 @@ namespace BongoBro
             if (args.Length == 2 && args[0] == "--export-icon") { IconMaker.ExportIco(args[1]); return; }
             if (args.Length == 2 && args[0] == "--preview") { IconMaker.ExportPreview(args[1]); return; }
             if (args.Length == 3 && args[0] == "--shot") { Screenshot(args[1], args[2]); return; }
+            if (args.Length == 1 && args[0] == "--update") { UpdateHeadless(); return; }
 
             // After a self-update the old process may still be closing: wait for it instead of refusing to start.
             Updated = args.Length == 1 && args[0] == "--updated";
@@ -54,18 +55,37 @@ namespace BongoBro
 
     static partial class Program
     {
+        // "BongoBro.exe --update": update without UI (the app restarts itself if a newer version exists).
+        static void UpdateHeadless()
+        {
+            Form host = new Form();
+            host.ShowInTaskbar = false;
+            host.Opacity = 0;
+            host.Load += delegate
+            {
+                Updater.CheckAsync(host, ok =>
+                {
+                    if (ok && Updater.Available) Updater.DownloadAndRestart(p => { }, msg => Application.Exit());
+                    else Application.Exit();
+                });
+            };
+            Application.Run(host);
+        }
+
         // Debug helper: renders one window off-screen to a PNG, using the real save read-only.
         static void Screenshot(string which, string path)
         {
             Application.EnableVisualStyles();
             Game.S = SaveData.Load();
             if (which == "loot-gold") { Game.S.GoldBoxes = 2; which = "loot"; }
-            Form f = which == "loot" ? (Form)new LootForm() : which == "shop" ? (Form)new ShopForm() : new AchievementsForm();
+            Form f = which == "loot" ? (Form)new LootForm() : which == "shop" ? (Form)new ShopForm()
+                : which == "update" ? (Form)new UpdateForm() : new AchievementsForm();
             f.StartPosition = FormStartPosition.Manual;
             f.Location = new Point(-5000, -5000);
             f.ShowInTaskbar = false;
             f.Show();
-            Application.DoEvents();
+            // the update window asks GitHub asynchronously: give it a few seconds
+            for (int i = 0; i < (which == "update" ? 120 : 1); i++) { Application.DoEvents(); Thread.Sleep(50); }
             using (Bitmap b = new Bitmap(f.Width, f.Height))
             {
                 f.DrawToBitmap(b, new Rectangle(0, 0, f.Width, f.Height));
