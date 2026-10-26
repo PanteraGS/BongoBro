@@ -26,7 +26,14 @@ namespace BongoBro
             p.RightDown = ph == 2;
             p.LitKey = ph == 0 ? 14 : ph == 2 ? 21 : -1;
             p.Blink = t % 4f < 0.13f;
-            Art.DrawCharacterIn(g, new RectangleF(22, 66, 250, 250), p);
+            Art.DrawCharacterIn(g, new RectangleF(22, 98, 250, 222), p);
+            // character picker
+            for (int i = 0; i < Characters.Ids.Length; i++)
+            {
+                string id = Characters.Ids[i];
+                RectangleF r = new RectangleF(28 + i * 122, 70, 116, 30);
+                Button(g, r, Characters.Name(id), Ui.Accent, s.Character == id, true, () => MainForm.SetCharacter(id));
+            }
 
             float y = 324;
             foreach (Slot sl in Items.Slots)

@@ -12,12 +12,14 @@ namespace BongoBro
         public int LitKey = -1;
         public float MouseDX, MouseDY, T;
         public string Hat, Glasses, Gloves, Face, Theme;
+        public string Character = Characters.Yura;
 
         public static Pose FromSave(SaveData s, float t)
         {
             Pose p = new Pose();
             p.T = t;
             p.Hat = s.Hat; p.Glasses = s.Glasses; p.Gloves = s.Gloves; p.Face = s.Face; p.Theme = s.Theme;
+            p.Character = s.Character;
             return p;
         }
     }
@@ -28,13 +30,13 @@ namespace BongoBro
         static readonly Stopwatch clock = Stopwatch.StartNew();
         public static float Now { get { return (float)(clock.Elapsed.TotalSeconds % 3600.0); } }
 
-        public static readonly Color Skin = Color.FromArgb(246, 210, 184);
-        public static readonly Color SkinShade = Color.FromArgb(232, 180, 152);
-        public static readonly Color SkinDeep = Color.FromArgb(196, 132, 106);
-        public static readonly Color Ink = Color.FromArgb(62, 40, 32);
-        public static readonly Color HairC = Color.FromArgb(132, 94, 60);
-        public static readonly Color HairDark = Color.FromArgb(78, 54, 34);
-        public static readonly Color HairLight = Color.FromArgb(176, 132, 88);
+        public static Color Skin = Color.FromArgb(246, 210, 184);
+        public static Color SkinShade = Color.FromArgb(232, 180, 152);
+        public static Color SkinDeep = Color.FromArgb(196, 132, 106);
+        public static Color Ink = Color.FromArgb(62, 40, 32);
+        public static Color HairC = Color.FromArgb(132, 94, 60);
+        public static Color HairDark = Color.FromArgb(78, 54, 34);
+        public static Color HairLight = Color.FromArgb(176, 132, 88);
         public static readonly Color Jacket = Color.FromArgb(40, 42, 48);
         public static readonly Color JacketHi = Color.FromArgb(70, 72, 82);
         public static readonly Color JacketInk = Color.FromArgb(14, 15, 20);
@@ -221,6 +223,7 @@ namespace BongoBro
         // ---------------- character ----------------
         public static void DrawCharacter(Graphics g, Pose p)
         {
+            UseCharacter(p.Character);
             GraphicsState root = g.Save();
             ScaleAround(g, 180, 356, SceneScale);
             DrawBody(g, p);
@@ -244,6 +247,7 @@ namespace BongoBro
 
         public static void DrawBust(Graphics g, RectangleF src, RectangleF dst, Pose p)
         {
+            UseCharacter(p.Character);
             GraphicsState st = Fit(g, src, dst);
             DrawBody(g, p);
             ScaleAround(g, 180, 216, HeadScale);
@@ -251,8 +255,8 @@ namespace BongoBro
             g.Restore(st);
         }
 
-        static readonly Color Shirt = Color.FromArgb(44, 46, 52);
-        static readonly Color ShirtHi = Color.FromArgb(78, 80, 90);
+        static Color Shirt = Color.FromArgb(44, 46, 52);
+        static Color ShirtHi = Color.FromArgb(78, 80, 90);
 
         static void DrawBody(Graphics g, Pose p)
         {
@@ -300,8 +304,9 @@ namespace BongoBro
                 Line(g, Ink, 2.2f, 198, 196, 200, 238);
             }
             // crew neck rib
-            Bez(g, Color.FromArgb(28, 29, 34), 7f, 152, 236, 162, 258, 198, 258, 208, 236);
+            Bez(g, Mix(Shirt, Color.Black, 0.4f), 7f, 152, 236, 162, 258, 198, 258, 208, 236);
             Bez(g, A(60, Color.White), 1.4f, 156, 238, 166, 255, 194, 255, 204, 238);
+            if (p.Character == Characters.Vlad) DrawChain(g);
         }
 
         static GraphicsPath FacePath()
@@ -318,6 +323,8 @@ namespace BongoBro
 
         public static void DrawHead(Graphics g, Pose p)
         {
+            UseCharacter(p.Character);
+            if (p.Character == Characters.Vlad) { DrawHeadVlad(g, p); return; }
             float t = p.T;
             if (p.Hat == "hat_halo") HaloBack(g, t);
             using (GraphicsPath bh = new GraphicsPath())
@@ -434,7 +441,7 @@ namespace BongoBro
             else { lh = p.LeftDown ? new PointF(122, 298) : new PointF(112, 246); lDown = p.LeftDown; }
             PointF rh = p.RightDown ? new PointF(238, 298) : new PointF(248, 246);
             Arm(g, ls, lh, p, lDown, false);
-            Arm(g, rs, rh, p, p.RightDown, true);
+            Arm(g, rs, rh, p, p.RightDown, p.Character != Characters.Vlad);
         }
 
         // Cursor movement is mirrored: his "right" and "forward" point at the viewer's left and down.
@@ -533,6 +540,9 @@ namespace BongoBro
         // ---------------- previews / misc ----------------
         public static void DrawItemPreview(Graphics g, Item it, RectangleF dst, float t)
         {
+            // previews show the item on the currently selected character
+            string who = Game.S != null ? Game.S.Character : Characters.Yura;
+            UseCharacter(who);
             switch (it.Slot)
             {
                 case Slot.Gloves: DrawGlovePreview(g, it.Id, dst, t); return;
@@ -540,6 +550,7 @@ namespace BongoBro
             }
             Pose p = new Pose();
             p.T = t;
+            p.Character = who;
             RectangleF src;
             if (it.Slot == Slot.Hat) { p.Hat = it.Id; src = new RectangleF(92, -6, 176, 164); }
             else if (it.Slot == Slot.Glasses) { p.Glasses = it.Id; src = new RectangleF(108, 92, 144, 108); }

@@ -168,8 +168,26 @@ namespace BongoBro
         }
     }
 
+    public static class Characters
+    {
+        // Ids are stored in the save file: never rename them.
+        public const string Yura = "yura", Vlad = "vlad";
+        public static readonly string[] Ids = { Yura, Vlad };
+
+        public static string Name(string id)
+        {
+            return id == Vlad ? "Влад" : "Юра";
+        }
+
+        public static string Normalize(string id)
+        {
+            return Array.IndexOf(Ids, id) >= 0 ? id : Yura;
+        }
+    }
+
     public class SaveData
     {
+        public string Character = Characters.Yura;
         public long Keys, Clicks;
         public int Boxes, Opened, GoldBoxes;
         public HashSet<string> Owned = new HashSet<string>();
@@ -244,6 +262,7 @@ namespace BongoBro
                 sb.Append("bestkpm=").Append(BestKpm.ToString(ci)).Append('\n');
                 sb.Append("streak=").Append(Streak.ToString(ci)).Append('\n');
                 sb.Append("lastday=").Append(LastDay ?? "").Append('\n');
+                sb.Append("char=").Append(Character).Append('\n');
                 string tmp = FilePath + ".tmp";
                 File.WriteAllText(tmp, sb.ToString(), Encoding.UTF8);
                 if (File.Exists(FilePath))
@@ -306,6 +325,7 @@ namespace BongoBro
                         case "bestkpm": int.TryParse(v, NumberStyles.Integer, ci, out d.BestKpm); break;
                         case "streak": int.TryParse(v, NumberStyles.Integer, ci, out d.Streak); break;
                         case "lastday": d.LastDay = id; break;
+                        case "char": d.Character = Characters.Normalize(v); break;
                     }
                 }
                 if (d.Scale < 0.15f || d.Scale > 2f) d.Scale = 0.8f;

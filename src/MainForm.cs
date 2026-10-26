@@ -25,7 +25,7 @@ namespace BongoBro
         readonly Timer timer;
         NotifyIcon tray;
         ContextMenuStrip menu;
-        ToolStripMenuItem miBox, miAch, miUpdate;
+        ToolStripMenuItem miBox, miAch, miUpdate, miChar;
         UpdateForm upd;
         int lastUpdateCheck;
         string notifiedVersion, balloonKind;
@@ -257,12 +257,13 @@ namespace BongoBro
             pose.Gloves = Game.S.Gloves;
             pose.Face = Game.S.Face;
             pose.Theme = Game.S.Theme;
+            pose.Character = Game.S.Character;
             pose.T = Art.Now;
 
             bool anim = Art.IsAnimated(pose);
             string sig = string.Concat(new object[] {
                 pose.LeftDown, pose.RightDown, pose.OnMouse, pose.MouseDown, pose.Blink, pose.LitKey,
-                pose.MouseDX, pose.MouseDY, pose.Hat, pose.Glasses, pose.Gloves, pose.Face, pose.Theme, scale });
+                pose.MouseDX, pose.MouseDY, pose.Hat, pose.Glasses, pose.Gloves, pose.Face, pose.Theme, pose.Character, scale });
             if (shown && (anim || sig != lastSig))
             {
                 lastSig = sig;
@@ -382,6 +383,12 @@ namespace BongoBro
             if (v) { Show(); Render(); } else Hide();
         }
 
+        public static void SetCharacter(string id)
+        {
+            Game.S.Character = Characters.Normalize(id);
+            Game.Save();
+        }
+
         public void OpenLoot()
         {
             if (loot == null || loot.IsDisposed) loot = new LootForm();
@@ -418,6 +425,28 @@ namespace BongoBro
             miBox = new ToolStripMenuItem("Открыть лутбокс", Ui.MenuIcon("gift", ip), delegate { OpenLoot(); });
             ToolStripMenuItem miShop = new ToolStripMenuItem("Гардероб и коллекция", Ui.MenuIcon("shirt", ip), delegate { OpenShop(); });
             miAch = new ToolStripMenuItem("Достижения", Ui.MenuIcon("trophy", ip), delegate { OpenAchievements(); });
+            miChar = new ToolStripMenuItem("Персонаж", Ui.MenuIcon("user", ip));
+            foreach (string id in Characters.Ids)
+            {
+                string who = id;
+                ToolStripMenuItem it = new ToolStripMenuItem(Characters.Name(who));
+                it.Tag = who;
+                it.Click += delegate { SetCharacter(who); };
+                miChar.DropDownItems.Add(it);
+            }
+            miChar.DropDown.Renderer = menu.Renderer;
+            miChar.DropDown.BackColor = Ui.Panel;
+            miChar.DropDown.Font = menu.Font;
+            ((ToolStripDropDownMenu)miChar.DropDown).ShowImageMargin = false;
+            ((ToolStripDropDownMenu)miChar.DropDown).ShowCheckMargin = true;
+            miChar.DropDownOpening += delegate
+            {
+                foreach (ToolStripItem it in miChar.DropDownItems)
+                {
+                    ToolStripMenuItem mi = it as ToolStripMenuItem;
+                    if (mi != null) mi.Checked = (string)mi.Tag == Game.S.Character;
+                }
+            };
 
             charSlider = new MenuSlider("Размер персонажа", MinScale, MaxScale, Game.S.Scale);
             charSlider.ValueChanged += SetScale;
@@ -445,7 +474,7 @@ namespace BongoBro
             ToolStripMenuItem miExit = new ToolStripMenuItem("Выход", Ui.MenuIcon("exit", ip), delegate { Close(); });
 
             menu.Items.AddRange(new ToolStripItem[] {
-                header, new ToolStripSeparator(), miBox, miShop, miAch, new ToolStripSeparator(),
+                header, new ToolStripSeparator(), miChar, miBox, miShop, miAch, new ToolStripSeparator(),
                 charSlider.Host, counterSlider.Host, new ToolStripSeparator(),
                 tAuto, tTop, tCounter, tShown, miReset, new ToolStripSeparator(), miUpdate, miExit });
 
@@ -455,6 +484,7 @@ namespace BongoBro
                 miBox.Text = n + gold == 0 ? "Лутбоксы"
                     : "Открыть лутбокс  (" + n + (gold > 0 ? " + " + gold + " зол." : "") + ")";
                 miAch.Text = "Достижения  (" + Game.S.Achieved.Count + "/" + Achievement.All.Count + ")";
+                miChar.Text = "Персонаж: " + Characters.Name(Game.S.Character);
                 miUpdate.Text = Updater.Available ? "Обновить до версии " + Updater.LatestVersion : "Проверить обновления  (v" + Program.Version + ")";
                 charSlider.SetValue(Game.S.Scale);
                 counterSlider.SetValue(Game.S.CounterScale);

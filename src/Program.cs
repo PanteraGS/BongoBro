@@ -78,6 +78,7 @@ namespace BongoBro
             Application.EnableVisualStyles();
             Game.S = SaveData.Load();
             if (which == "loot-gold") { Game.S.GoldBoxes = 2; which = "loot"; }
+            if (Environment.GetEnvironmentVariable("BONGO_PREVIEW_CHAR") == Characters.Vlad) Game.S.Character = Characters.Vlad;
             Form f = which == "loot" ? (Form)new LootForm() : which == "shop" ? (Form)new ShopForm()
                 : which == "update" ? (Form)new UpdateForm() : new AchievementsForm();
             f.StartPosition = FormStartPosition.Manual;
@@ -155,6 +156,7 @@ namespace BongoBro
         public static void ExportPreview(string path)
         {
             Game.S = new SaveData();
+            if (Environment.GetEnvironmentVariable("BONGO_PREVIEW_CHAR") == Characters.Vlad) Game.S.Character = Characters.Vlad;
             using (Bitmap b = new Bitmap(1440, 1280, PixelFormat.Format32bppArgb))
             using (Graphics g = Graphics.FromImage(b))
             {
@@ -172,6 +174,7 @@ namespace BongoBro
                 for (int i = 0; i < looks.Length; i++)
                 {
                     Pose p = new Pose();
+                    if (Environment.GetEnvironmentVariable("BONGO_PREVIEW_CHAR") == Characters.Vlad) p.Character = Characters.Vlad;
                     p.T = 0.7f + i;
                     p.Hat = looks[i][0]; p.Glasses = looks[i][1]; p.Gloves = looks[i][2]; p.Face = looks[i][3]; p.Theme = looks[i][4];
                     if (i % 2 == 0) { p.LeftDown = true; p.LitKey = 14; } else { p.OnMouse = true; p.MouseDown = true; }
