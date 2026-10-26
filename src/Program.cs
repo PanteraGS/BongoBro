@@ -21,6 +21,7 @@ namespace BongoBro
         {
             if (args.Length == 2 && args[0] == "--export-icon") { IconMaker.ExportIco(args[1]); return; }
             if (args.Length == 2 && args[0] == "--preview") { IconMaker.ExportPreview(args[1]); return; }
+            if (args.Length == 2 && args[0] == "--preview2") { IconMaker.ExportFeatures(args[1]); return; }
             if (args.Length == 3 && args[0] == "--shot") { Screenshot(args[1], args[2]); return; }
             if (args.Length == 1 && args[0] == "--update") { UpdateHeadless(); return; }
 
@@ -82,6 +83,13 @@ namespace BongoBro
             Application.Run(host);
         }
 
+        static ShopForm SetsShop()
+        {
+            ShopForm f = new ShopForm();
+            f.ShowSetsTab();
+            return f;
+        }
+
         // Debug helper: renders one window off-screen to a PNG, using the real save read-only.
         static void Screenshot(string which, string path)
         {
@@ -90,7 +98,8 @@ namespace BongoBro
             if (which == "loot-gold") { Game.S.GoldBoxes = 2; which = "loot"; }
             if (Environment.GetEnvironmentVariable("BONGO_PREVIEW_CHAR") == Characters.Vlad) Game.S.Character = Characters.Vlad;
             Form f = which == "loot" ? (Form)new LootForm() : which == "shop" ? (Form)new ShopForm()
-                : which == "update" ? (Form)new UpdateForm() : which == "board" ? (Form)new LeaderboardForm() : new AchievementsForm();
+                : which == "update" ? (Form)new UpdateForm() : which == "board" ? (Form)new LeaderboardForm()
+                : which == "dev" ? (Form)new DevForm(null) : which == "sets" ? (Form)SetsShop() : new AchievementsForm();
             f.StartPosition = FormStartPosition.Manual;
             f.Location = new Point(-5000, -5000);
             f.ShowInTaskbar = false;
@@ -160,6 +169,76 @@ namespace BongoBro
                 }
                 foreach (byte[] png in pngs) w.Write(png);
             }
+        }
+
+        // Debug helper: moods, gear sets, day phases and pets on one sheet.
+        public static void ExportFeatures(string path)
+        {
+            Game.S = new SaveData();
+            using (Bitmap b = new Bitmap(1440, 980, PixelFormat.Format32bppArgb))
+            using (Graphics g = Graphics.FromImage(b))
+            {
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+                g.Clear(Ui.Bg);
+                Mood[] moods = { Mood.Normal, Mood.Yawn, Mood.Sleep, Mood.Surprised, Mood.Focused, Mood.Happy };
+                string[] mn = { "Обычный", "Зевает", "Спит", "Удивлён", "Сосредоточен", "Радуется" };
+                for (int i = 0; i < moods.Length; i++)
+                {
+                    Pose p = new Pose();
+                    p.T = 1.1f + i; p.Mood = moods[i]; p.Pet = "pet_cat"; p.RightDown = moods[i] == Mood.Focused;
+                    Character(g, new Rectangle(10 + i * 238, 10, 228, 228), p, mn[i]);
+                }
+                string[] sets = { "set_samurai", "set_pirate", "set_astro" };
+                for (int i = 0; i < 3; i++)
+                {
+                    Pose p = new Pose();
+                    p.T = 2.3f + i; p.PetHop = 0.6f; p.LeftDown = true; p.LitKey = 12;
+                    if (i == 1) p.Character = Characters.Vlad;
+                    foreach (Item it in GearSet.All[i].Pieces())
+                        switch (it.Slot)
+                        {
+                            case Slot.Hat: p.Hat = it.Id; break;
+                            case Slot.Glasses: p.Glasses = it.Id; break;
+                            case Slot.Gloves: p.Gloves = it.Id; break;
+                            case Slot.Face: p.Face = it.Id; break;
+                            case Slot.Theme: p.Theme = it.Id; break;
+                            case Slot.Pet: p.Pet = it.Id; break;
+                        }
+                    Character(g, new Rectangle(10 + i * 238, 250, 228, 228), p, "Сет: " + GearSet.All[i].Name);
+                }
+                DayPhase[] days = { DayPhase.Morning, DayPhase.Evening, DayPhase.Night };
+                string[] dn = { "Утро", "Вечер", "Ночь" };
+                for (int i = 0; i < 3; i++)
+                {
+                    Pose p = new Pose();
+                    p.T = 3.3f + i; p.Day = days[i]; p.Pet = i == 2 ? "pet_owl" : "pet_corgi"; p.Mood = i == 2 ? Mood.Sleep : Mood.Normal;
+                    Character(g, new Rectangle(724 + i * 238, 250, 228, 228), p, dn[i]);
+                }
+                int n = 0;
+                foreach (Item it in Items.OfSlot(Slot.Pet))
+                {
+                    Ui.ItemCard(g, new RectangleF(10 + (n % 12) * 118, 500 + (n / 12) * 156, 110, 148), it, 1.4f + n * 0.3f, false, 0, false);
+                    n++;
+                }
+                b.Save(path, ImageFormat.Png);
+            }
+        }
+
+        static void Character(Graphics g, Rectangle r, Pose p, string label)
+        {
+            using (Bitmap c = new Bitmap(r.Width, r.Height, PixelFormat.Format32bppArgb))
+            {
+                using (Graphics cg = Graphics.FromImage(c))
+                {
+                    cg.SmoothingMode = SmoothingMode.AntiAlias;
+                    Ui.FillRR(cg, new RectangleF(0, 0, r.Width, r.Height), 12, Ui.Panel);
+                    Art.DrawCharacterIn(cg, new RectangleF(0, 0, r.Width, r.Height), p);
+                }
+                using (ImageAttributes tint = MainForm.DayTint(p.Day))
+                    g.DrawImage(c, r, 0, 0, c.Width, c.Height, GraphicsUnit.Pixel, tint);
+            }
+            Ui.TextL(g, label, Ui.F(14, true), Color.White, r.X + 8, r.Y + 6);
         }
 
         // Debug helper: renders a sheet with the character and every item.

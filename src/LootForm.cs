@@ -121,6 +121,7 @@ namespace BongoBro
             if (now - rollStart > RollMs + 350)
             {
                 st = St.Result;
+                Sound.Event(result.Rarity >= Rarity.Legendary ? "rare" : "item");
                 shownAt = now;
             }
         }

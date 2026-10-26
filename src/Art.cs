@@ -6,19 +6,40 @@ using System.Drawing.Drawing2D;
 
 namespace BongoBro
 {
+    public enum Mood { Normal, Yawn, Sleep, Surprised, Focused, Happy }
+    public enum DayPhase { Day, Morning, Evening, Night }
+
     public class Pose
     {
         public bool LeftDown, RightDown, OnMouse, MouseDown, Blink;
         public int LitKey = -1;
         public float MouseDX, MouseDY, T;
-        public string Hat, Glasses, Gloves, Face, Theme;
+        public string Hat, Glasses, Gloves, Face, Theme, Pet;
         public string Character = Characters.Yura;
+        public Mood Mood;
+        public DayPhase Day;
+        public float PetHop;   // 0..1, the pet jumps on key presses
+
+        public string Equipped(Slot s)
+        {
+            switch (s)
+            {
+                case Slot.Hat: return Hat;
+                case Slot.Glasses: return Glasses;
+                case Slot.Gloves: return Gloves;
+                case Slot.Face: return Face;
+                case Slot.Pet: return Pet;
+                default: return Theme;
+            }
+        }
+
+        public string ActiveSet { get { return GearSet.Active(Equipped); } }
 
         public static Pose FromSave(SaveData s, float t)
         {
             Pose p = new Pose();
             p.T = t;
-            p.Hat = s.Hat; p.Glasses = s.Glasses; p.Gloves = s.Gloves; p.Face = s.Face; p.Theme = s.Theme;
+            p.Hat = s.Hat; p.Glasses = s.Glasses; p.Gloves = s.Gloves; p.Face = s.Face; p.Theme = s.Theme; p.Pet = s.Pet;
             p.Character = s.Character;
             return p;
         }
@@ -225,17 +246,32 @@ namespace BongoBro
         {
             UseCharacter(p.Character);
             GraphicsState root = g.Save();
+            DayBack(g, p);
+            SetBonusBack(g, p);
             ScaleAround(g, 180, 356, SceneScale);
+            // weightless float while the astronaut set is worn
+            if (p.ActiveSet == "set_astro") g.TranslateTransform(0, Sin(p.T * 1.5) * 5 - 3);
             DrawBody(g, p);
             bool hit = p.LeftDown || p.RightDown || (p.OnMouse && p.MouseDown);
             GraphicsState st = g.Save();
-            if (hit) g.TranslateTransform(0, 2.5f);
+            if (hit && p.Mood != Mood.Sleep) g.TranslateTransform(0, 2.5f);
+            if (p.Mood == Mood.Sleep)
+            {
+                // head droops to one side while asleep
+                g.TranslateTransform(180, 214);
+                g.RotateTransform(7);
+                g.TranslateTransform(-180, -210);
+            }
             ScaleAround(g, 180, 216, HeadScale);
             DrawHead(g, p);
             g.Restore(st);
             DrawDesk(g, p);
+            DayFront(g, p);
+            DrawPet(g, p);
             DrawArms(g, p);
+            SpeedLines(g, p);
             g.Restore(root);
+            SetBonusFront(g, p);
         }
 
         public static void DrawCharacterIn(Graphics g, RectangleF dst, Pose p)
@@ -364,6 +400,7 @@ namespace BongoBro
             DrawBrows(g, p);
             DrawGlasses(g, p.Glasses, t);
             DrawHat(g, p.Hat, t);
+            MoodOverlay(g, p);
         }
 
         static void DrawEar(Graphics g, float cx, float cy, bool right)
@@ -547,6 +584,7 @@ namespace BongoBro
             {
                 case Slot.Gloves: DrawGlovePreview(g, it.Id, dst, t); return;
                 case Slot.Theme: DrawThemePreview(g, it.Id, dst, t); return;
+                case Slot.Pet: DrawPetPreview(g, it.Id, dst, t); return;
             }
             Pose p = new Pose();
             p.T = t;

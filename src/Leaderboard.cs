@@ -65,6 +65,8 @@ namespace BongoBro
         // done(null) on success, otherwise an error code from the server or "offline".
         public static void SubmitAsync(Control ui, string name, Action<string> done)
         {
+            // sandbox numbers from developer mode must never reach the real table
+            if (Game.DevMode) { Post(ui, () => done("dev_mode")); return; }
             SaveData s = Game.S;
             EnsureIdentity(s);
             Dictionary<string, object> body = new Dictionary<string, object>();
@@ -170,6 +172,7 @@ namespace BongoBro
                 case "bad_name": return "Ник: 2–16 символов, буквы, цифры, пробел, _ . -";
                 case "offline": return "Нет связи с сервером. Проверь интернет.";
                 case "too_often": return "Слишком часто, попробуй через минуту.";
+                case "dev_mode": return "В режиме разработчика таблица только для просмотра.";
                 default: return "Ошибка сервера: " + code;
             }
         }

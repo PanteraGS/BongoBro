@@ -83,6 +83,9 @@ namespace BongoBro
                             FillEl(g, Color.White, d.X - 2, d.Y - 2, 4, 4);
                         break;
                     }
+                case "set_samurai_paint":
+                    SamuraiPaint(g);
+                    break;
                 case "fc_fireeyes":
                     Glow(g, EyeL, EyeY + 6, 28, 24, Color.FromArgb(255, 110, 20), 90);
                     Glow(g, EyeR, EyeY + 6, 28, 24, Color.FromArgb(255, 110, 20), 90);
@@ -107,6 +110,8 @@ namespace BongoBro
 
         static void DrawEyes(Graphics g, Pose p)
         {
+            if (p.Mood == Mood.Sleep || p.Mood == Mood.Yawn) { DrawEye(g, EyeL, EyeY, -1, EyeClosed, p.T); DrawEye(g, EyeR, EyeY, 1, EyeClosed, p.T); return; }
+            if (p.Mood == Mood.Happy) { DrawEye(g, EyeL, EyeY, -1, EyeHappy, p.T); DrawEye(g, EyeR, EyeY, 1, EyeHappy, p.T); return; }
             int mode = EyeNormal;
             switch (p.Face)
             {
@@ -194,8 +199,8 @@ namespace BongoBro
 
         static void DrawBrows(Graphics g, Pose p)
         {
-            bool angry = p.Face == "fc_warpaint" || p.Face == "fc_fireeyes";
-            float dy = p.Face == "fc_grin" || p.Face == "fc_stars" ? -3 : 0;
+            bool angry = p.Face == "fc_warpaint" || p.Face == "fc_fireeyes" || p.Face == "set_samurai_paint" || p.Mood == Mood.Focused;
+            float dy = p.Mood == Mood.Surprised ? -7 : p.Face == "fc_grin" || p.Face == "fc_stars" || p.Mood == Mood.Happy ? -3 : 0;
             for (int k = 0; k < 2; k++)
             {
                 float s = k == 0 ? 1 : -1;
@@ -244,7 +249,38 @@ namespace BongoBro
         static void DrawMouth(Graphics g, Pose p)
         {
             Color line = Color.FromArgb(150, 70, 62);
-            switch (p.Face)
+            switch (p.Mood)
+            {
+                case Mood.Sleep:
+                    FillEl(g, Color.FromArgb(110, 40, 46), 176, 185, 8, 7);
+                    return;
+                case Mood.Yawn:
+                    using (GraphicsPath y = new GraphicsPath())
+                    {
+                        y.AddEllipse(166, 178, 28, 26);
+                        Fill(g, Color.FromArgb(100, 26, 36), y);
+                        GraphicsState st = g.Save();
+                        g.SetClip(y, CombineMode.Intersect);
+                        FillEl(g, Color.FromArgb(255, 120, 132), 170, 194, 20, 14);
+                        g.Restore(st);
+                        Stroke(g, Ink, 2.2f, y);
+                    }
+                    return;
+                case Mood.Surprised:
+                    using (GraphicsPath o = new GraphicsPath())
+                    {
+                        o.AddEllipse(174, 183, 13, 13);
+                        Fill(g, Color.FromArgb(110, 30, 40), o);
+                        Stroke(g, Ink, 2f, o);
+                    }
+                    return;
+                case Mood.Focused:
+                    Line(g, line, 2.6f, 168, 188, 194, 187);
+                    return;
+            }
+            string face = p.Mood == Mood.Happy ? "fc_grin" : p.Face;
+            if (face == "set_samurai_paint") face = "fc_warpaint";
+            switch (face)
             {
                 case "fc_grin":
                 case "fc_clown":

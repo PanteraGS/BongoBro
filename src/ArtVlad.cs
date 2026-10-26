@@ -79,6 +79,7 @@ namespace BongoBro
             if (p.Glasses == null) VladGlasses(g);
             else DrawGlasses(g, p.Glasses, t);
             DrawHat(g, p.Hat, t);
+            MoodOverlay(g, p);
         }
 
         // dark zig-zag stripes that follow the curve of the melon

@@ -25,7 +25,7 @@ namespace BongoBro
         readonly Timer timer;
         NotifyIcon tray;
         ContextMenuStrip menu;
-        ToolStripMenuItem miBox, miAch, miUpdate, miChar;
+        ToolStripMenuItem miBox, miAch, miUpdate, miChar, miDev;
         UpdateForm upd;
         int lastUpdateCheck;
         string notifiedVersion, balloonKind;
@@ -41,6 +41,11 @@ namespace BongoBro
         int lastDayCheck;
         AchievementsForm ach;
         LeaderboardForm lb;
+        DevForm dev;
+        // reactions: pet hop, joy after rewards, waking up, occasional yawns
+        int petHopAt = -100000, happyUntil = -100000, wokeUntil = -100000, yawnUntil = -100000, nextYawn, frame;
+        readonly int startTick = Environment.TickCount;
+        bool wasAsleep;
         int lastLbSubmit = Environment.TickCount - Leaderboard.SubmitEveryMs + 20000; // first report ~20 s after start
         ShopForm shop;
         LootForm loot;
@@ -158,6 +163,8 @@ namespace BongoBro
                         if (right) rightPress = now; else leftPress = now;
                         lastKey = now;
                         pose.LitKey = (vk * 7 + rnd.Next(3)) % Art.KeyCount;
+                        Sound.Key(right);
+                        petHopAt = now;
                         if (Game.AddKey()) OnBoxEarned();
                         keyTimes.Enqueue(now);
                         while (now - keyTimes.Peek() > 60000) keyTimes.Dequeue();
@@ -182,6 +189,7 @@ namespace BongoBro
                         mouseDown = true;
                         lastMouse = Environment.TickCount;
                         Game.AddClick();
+                        Sound.Click();
                         break;
                     case WM_LBUTTONUP:
                     case WM_RBUTTONUP:
@@ -201,6 +209,8 @@ namespace BongoBro
         void OnBoxEarned()
         {
             fxText = "+1 ЛУТБОКС!";
+            Sound.Event("box");
+            happyUntil = Environment.TickCount + 3000;
             boxFxUntil = Environment.TickCount + 3000;
             Balloon("loot", "Новый лутбокс!", "Ещё 2000 нажатий позади. Открой лутбокс в меню персонажа.");
         }
@@ -208,6 +218,8 @@ namespace BongoBro
         void OnUnlocked(Achievement a)
         {
             fxText = "ДОСТИЖЕНИЕ!";
+            Sound.Event("ach");
+            happyUntil = Environment.TickCount + 3500;
             boxFxUntil = Environment.TickCount + 3500;
             Balloon("loot", "Достижение: " + a.Name, a.Desc + "\nНаграда: " + a.RewardText());
         }
@@ -234,6 +246,14 @@ namespace BongoBro
         {
             if (upd == null || upd.IsDisposed) upd = new UpdateForm();
             ShowForm(upd);
+        }
+
+        // asks for the code first; once in developer mode opens the test panel directly
+        public void OpenDev()
+        {
+            if (!Game.DevMode) { ShowForm(new DevCodeForm(this)); return; }
+            if (dev == null || dev.IsDisposed) dev = new DevForm(this);
+            ShowForm(dev);
         }
 
         public void OpenLeaderboard()
@@ -283,13 +303,21 @@ namespace BongoBro
             pose.Face = Game.S.Face;
             pose.Theme = Game.S.Theme;
             pose.Character = Game.S.Character;
+            pose.Pet = Game.S.Pet;
             pose.T = Art.Now;
+            pose.Mood = CurrentMood(now);
+            pose.Day = CurrentDay();
+            pose.PetHop = Math.Max(0f, 1f - (now - petHopAt) / 260f);
 
-            bool anim = Art.IsAnimated(pose);
+            // full frame rate for glowing items, set effects and hops; half rate for calm idle motion
+            bool anim = Art.IsAnimated(pose) || pose.ActiveSet != null || pose.PetHop > 0 || pose.Mood != Mood.Normal;
+            bool calm = pose.Pet != null || pose.Day == DayPhase.Morning || pose.Day == DayPhase.Night;
+            frame++;
             string sig = string.Concat(new object[] {
                 pose.LeftDown, pose.RightDown, pose.OnMouse, pose.MouseDown, pose.Blink, pose.LitKey,
-                pose.MouseDX, pose.MouseDY, pose.Hat, pose.Glasses, pose.Gloves, pose.Face, pose.Theme, pose.Character, scale });
-            if (shown && (anim || sig != lastSig))
+                pose.MouseDX, pose.MouseDY, pose.Hat, pose.Glasses, pose.Gloves, pose.Face, pose.Theme, pose.Character,
+                pose.Pet, pose.Mood, pose.Day, Game.DevMode, scale });
+            if (shown && (anim || (calm && frame % 2 == 0) || sig != lastSig))
             {
                 lastSig = sig;
                 Render();
@@ -310,6 +338,55 @@ namespace BongoBro
             }
         }
 
+        Mood CurrentMood(int now)
+        {
+            if (Game.DevMood.HasValue) return Game.DevMood.Value;
+            int idle = now - Math.Max(startTick, Math.Max(lastKey, lastMouse));
+            if (idle > 5 * 60 * 1000) { wasAsleep = true; return Mood.Sleep; }
+            if (wasAsleep) { wasAsleep = false; wokeUntil = now + 1400; }
+            if (idle > 45 * 1000 && now - nextYawn >= 0)
+            {
+                yawnUntil = now + 1600;
+                nextYawn = now + (CurrentDay() == DayPhase.Night ? 9000 : 18000) + rnd.Next(12000);
+            }
+            if (now - wokeUntil < 0) return Mood.Surprised;
+            if (now - happyUntil < 0) return Mood.Happy;
+            if (now - yawnUntil < 0) return Mood.Yawn;
+            int recent = 0;
+            foreach (int k in keyTimes) if (now - k < 5000) recent++;
+            return recent >= 30 ? Mood.Focused : Mood.Normal;   // 30 keys in 5 s = 360 per minute
+        }
+
+        DayPhase CurrentDay()
+        {
+            if (Game.DevDay.HasValue) return Game.DevDay.Value;
+            if (!Game.S.DayPhases) return DayPhase.Day;
+            int h = DateTime.Now.Hour;
+            if (h >= 23 || h < 6) return DayPhase.Night;
+            if (h < 11) return DayPhase.Morning;
+            if (h >= 18) return DayPhase.Evening;
+            return DayPhase.Day;
+        }
+
+        // dims and tints the whole character for the evening and night
+        public static ImageAttributes DayTint(DayPhase d)
+        {
+            float r, g, b;
+            if (d == DayPhase.Night) { r = 0.70f; g = 0.76f; b = 0.98f; }
+            else if (d == DayPhase.Evening) { r = 1.02f; g = 0.90f; b = 0.80f; }
+            else return null;
+            ImageAttributes ia = new ImageAttributes();
+            ia.SetColorMatrix(new ColorMatrix(new float[][] {
+                new float[] { r, 0, 0, 0, 0 }, new float[] { 0, g, 0, 0, 0 }, new float[] { 0, 0, b, 0, 0 },
+                new float[] { 0, 0, 0, 1, 0 }, new float[] { 0, 0, 0, 0, 1 } }));
+            return ia;
+        }
+
+        // hooks for the developer panel
+        public void TestLootFx() { OnBoxEarned(); }
+        public void TestAchFx() { fxText = "ДОСТИЖЕНИЕ!"; boxFxUntil = Environment.TickCount + 3500; happyUntil = boxFxUntil; Sound.Event("ach"); }
+        public void TestPetHop() { petHopAt = Environment.TickCount; }
+
         void Render()
         {
             int px = CanvasPx();
@@ -327,6 +404,22 @@ namespace BongoBro
                 g.ScaleTransform(scale, scale);
                 Art.DrawCharacter(g, pose);
             }
+            using (ImageAttributes tint = DayTint(pose.Day))
+                if (tint != null)
+                    using (Bitmap copy = new Bitmap(canvas))
+                    using (Graphics g = Graphics.FromImage(canvas))
+                    {
+                        g.Clear(Color.Transparent);
+                        g.DrawImage(copy, new Rectangle(0, 0, canvas.Width, canvas.Height), 0, 0, canvas.Width, canvas.Height, GraphicsUnit.Pixel, tint);
+                    }
+            if (Game.DevMode)
+                using (Graphics g = Graphics.FromImage(canvas))
+                {
+                    g.SmoothingMode = SmoothingMode.AntiAlias;
+                    g.ScaleTransform(scale, scale);
+                    Ui.FillRR(g, new RectangleF(4, 4, 46, 20), 6, Color.FromArgb(230, 239, 68, 68));
+                    Ui.TextC(g, "DEV", Ui.F(13, true), Color.White, new RectangleF(4, 4, 46, 20));
+                }
             Native.SetLayeredBitmap(this, canvas);
         }
 
@@ -500,6 +593,40 @@ namespace BongoBro
             });
             ToggleItem tCounter = new ToggleItem("Показывать счётчик", Ui.MenuIcon("counter", ip), () => Game.S.ShowCounter, v => { Game.S.ShowCounter = v; Game.Save(); });
             ToggleItem tShown = new ToggleItem("Показывать персонажа", Ui.MenuIcon("user", ip), () => shown, SetShown);
+            ToggleItem tDay = new ToggleItem("Время суток", Ui.MenuIcon("sun", ip), () => Game.S.DayPhases, v => { Game.S.DayPhases = v; Game.Save(); });
+
+            // sounds: key sound mode (radio), volume slider, event jingles
+            ToolStripMenuItem miSound = new ToolStripMenuItem("Звуки", Ui.MenuIcon("sound", ip));
+            foreach (string m in Sound.Modes)
+            {
+                string mode = m;
+                ToolStripMenuItem it = new ToolStripMenuItem(Sound.ModeName(mode));
+                it.Tag = mode;
+                it.Click += delegate { Game.S.SoundMode = mode; Game.Save(); Sound.Key(true); };
+                miSound.DropDownItems.Add(it);
+            }
+            miSound.DropDownItems.Add(new ToolStripSeparator());
+            MenuSlider volSlider = new MenuSlider("Громкость", 0f, 1f, Game.S.Volume);
+            volSlider.ValueChanged += v => { Game.S.Volume = v; };
+            volSlider.Committed += () => { Game.Save(); if (Game.S.SoundMode != "off") Sound.Key(true); else Sound.Event("item"); };
+            miSound.DropDownItems.Add(volSlider.Host);
+            miSound.DropDownItems.Add(new ToggleItem("Звуки лутбоксов и достижений", null, () => Game.S.EventSounds, v => { Game.S.EventSounds = v; Game.Save(); }));
+            miSound.DropDown.Renderer = menu.Renderer;
+            miSound.DropDown.BackColor = Ui.Panel;
+            miSound.DropDown.Font = menu.Font;
+            ((ToolStripDropDownMenu)miSound.DropDown).ShowImageMargin = false;
+            ((ToolStripDropDownMenu)miSound.DropDown).ShowCheckMargin = true;
+            miSound.DropDownOpening += delegate
+            {
+                volSlider.SetValue(Game.S.Volume);
+                foreach (ToolStripItem it in miSound.DropDownItems)
+                {
+                    ToolStripMenuItem mi = it as ToolStripMenuItem;
+                    if (mi != null && mi.Tag is string) mi.Checked = (string)mi.Tag == Game.S.SoundMode;
+                }
+            };
+
+            miDev = new ToolStripMenuItem("Код разработчика…", Ui.MenuIcon("dev", ip), delegate { OpenDev(); });
             miUpdate = new ToolStripMenuItem("Проверить обновления", Ui.MenuIcon("update", ip), delegate { OpenUpdate(); });
             ToolStripMenuItem miReset = new ToolStripMenuItem("Вернуть в угол экрана", Ui.MenuIcon("reset", ip), delegate { SetShown(true); ResetPosition(); });
             ToolStripMenuItem miExit = new ToolStripMenuItem("Выход", Ui.MenuIcon("exit", ip), delegate { Close(); });
@@ -507,7 +634,7 @@ namespace BongoBro
             menu.Items.AddRange(new ToolStripItem[] {
                 header, new ToolStripSeparator(), miChar, miBox, miShop, miAch, miBoard, new ToolStripSeparator(),
                 charSlider.Host, counterSlider.Host, new ToolStripSeparator(),
-                tAuto, tTop, tCounter, tShown, miReset, new ToolStripSeparator(), miUpdate, miExit });
+                miSound, tDay, tAuto, tTop, tCounter, tShown, miReset, new ToolStripSeparator(), miUpdate, miDev, miExit });
 
             menu.Opening += delegate
             {
@@ -516,6 +643,7 @@ namespace BongoBro
                     : "Открыть лутбокс  (" + n + (gold > 0 ? " + " + gold + " зол." : "") + ")";
                 miAch.Text = "Достижения  (" + Game.S.Achieved.Count + "/" + Achievement.All.Count + ")";
                 miChar.Text = "Персонаж: " + Characters.Name(Game.S.Character);
+                miDev.Text = Game.DevMode ? "Режим разработчика (вкл)" : "Код разработчика…";
                 miUpdate.Text = Updater.Available ? "Обновить до версии " + Updater.LatestVersion : "Проверить обновления  (v" + Program.Version + ")";
                 charSlider.SetValue(Game.S.Scale);
                 counterSlider.SetValue(Game.S.CounterScale);

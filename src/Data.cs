@@ -10,7 +10,7 @@ using Microsoft.Win32;
 namespace BongoBro
 {
     public enum Rarity { Common = 0, Rare = 1, Legendary = 2, Immortal = 3 }
-    public enum Slot { Hat = 0, Glasses = 1, Gloves = 2, Face = 3, Theme = 4 }
+    public enum Slot { Hat = 0, Glasses = 1, Gloves = 2, Face = 3, Theme = 4, Pet = 5 }
 
     public class Item
     {
@@ -18,6 +18,7 @@ namespace BongoBro
         public string Name;
         public Slot Slot;
         public Rarity Rarity;
+        public string Set;   // id of the gear set this item belongs to, or null
         public Item(string id, string name, Slot slot, Rarity rarity) { Id = id; Name = name; Slot = slot; Rarity = rarity; }
     }
 
@@ -25,7 +26,7 @@ namespace BongoBro
     {
         public static readonly List<Item> All = new List<Item>();
         public static readonly double[] Chances = { 0.62, 0.26, 0.10, 0.02 };
-        public static readonly Slot[] Slots = { Slot.Hat, Slot.Glasses, Slot.Gloves, Slot.Face, Slot.Theme };
+        public static readonly Slot[] Slots = { Slot.Hat, Slot.Glasses, Slot.Gloves, Slot.Face, Slot.Theme, Slot.Pet };
 
         static Items()
         {
@@ -54,6 +55,40 @@ namespace BongoBro
                 new[] { "th_retro", "Ретро", "th_sakura", "Сакура", "th_ocean", "Океан", "th_matcha", "Матча" },
                 new[] { "th_marble", "Золото и мрамор", "th_cyber", "Киберпанк", "th_candy", "Конфетка" },
                 new[] { "th_rgb", "RGB Геймер", "th_cosmos", "Космос" });
+            Group(Slot.Pet,
+                new[] { "pet_cat", "Котик", "pet_hamster", "Хомяк", "pet_duck", "Утёнок", "pet_frog", "Лягушонок", "pet_penguin", "Пингвинёнок" },
+                new[] { "pet_fox", "Лисёнок", "pet_panda", "Панда", "pet_owl", "Совёнок", "pet_axolotl", "Аксолотль" },
+                new[] { "pet_corgi", "Корги", "pet_melon", "Мини-арбуз", "pet_robot", "Робот" },
+                new[] { "pet_dragon", "Дракончик", "pet_unicorn", "Единорожек" });
+
+            // gear sets: 4 pieces each, a bonus effect when all are worn
+            SetPiece("set_samurai", Rarity.Common, Slot.Hat, "set_samurai_band", "Хатимаки");
+            SetPiece("set_samurai", Rarity.Common, Slot.Face, "set_samurai_paint", "Грим самурая");
+            SetPiece("set_samurai", Rarity.Common, Slot.Gloves, "set_samurai_gloves", "Наручи самурая");
+            SetPiece("set_samurai", Rarity.Common, Slot.Pet, "set_samurai_shiba", "Сиба-ину");
+            SetPiece("set_pirate", Rarity.Rare, Slot.Hat, "set_pirate_hat", "Треуголка капитана");
+            SetPiece("set_pirate", Rarity.Rare, Slot.Glasses, "set_pirate_patch", "Повязка на глаз");
+            SetPiece("set_pirate", Rarity.Rare, Slot.Gloves, "set_pirate_gloves", "Перчатки корсара");
+            SetPiece("set_pirate", Rarity.Rare, Slot.Pet, "set_pirate_parrot", "Попугай Кеша");
+            SetPiece("set_astro", Rarity.Legendary, Slot.Hat, "set_astro_helmet", "Шлем космонавта");
+            SetPiece("set_astro", Rarity.Legendary, Slot.Gloves, "set_astro_gloves", "Перчатки скафандра");
+            SetPiece("set_astro", Rarity.Legendary, Slot.Theme, "set_astro_style", "Пульт ЦУПа");
+            SetPiece("set_astro", Rarity.Legendary, Slot.Pet, "set_astro_alien", "Инопланетянин");
+        }
+
+        static void SetPiece(string set, Rarity r, Slot s, string id, string name)
+        {
+            Item it = new Item(id, name, s, r);
+            it.Set = set;
+            All.Add(it);
+        }
+
+        // items shown in a slot tab of the wardrobe (set pieces live in the "Сеты" tab)
+        public static List<Item> OfSlotBase(Slot s)
+        {
+            List<Item> l = new List<Item>();
+            foreach (Item it in All) if (it.Slot == s && it.Set == null) l.Add(it);
+            return l;
         }
 
         static void Group(Slot s, params string[][] tiers)
@@ -151,6 +186,7 @@ namespace BongoBro
                 case Slot.Gloves: return "Перчатки";
                 case Slot.Face: return "Лицо";
                 case Slot.Theme: return "Стиль";
+                case Slot.Pet: return "Питомцы";
                 default: return "Шапки";
             }
         }
@@ -163,6 +199,7 @@ namespace BongoBro
                 case Slot.Gloves: return "Перчатки";
                 case Slot.Face: return "Лицо";
                 case Slot.Theme: return "Стиль";
+                case Slot.Pet: return "Питомец";
                 default: return "Шапка";
             }
         }
@@ -190,6 +227,10 @@ namespace BongoBro
         public string Character = Characters.Yura;
         // leaderboard identity: random id + secret token proving the entry is ours; Nick = null means not taking part
         public string PlayerId, PlayerToken, Nick;
+        // sound: key sound mode (see Sound.Modes), volume 0..1, loot/achievement jingles; day phases on/off
+        public string SoundMode = "off";
+        public float Volume = 0.5f;
+        public bool EventSounds = true, DayPhases = true;
         public long Keys, Clicks;
         public int Boxes, Opened, GoldBoxes;
         public HashSet<string> Owned = new HashSet<string>();
@@ -197,7 +238,7 @@ namespace BongoBro
         // best keys-per-minute, current daily streak and the last day the app ran (yyyy-MM-dd)
         public int BestKpm, Streak;
         public string LastDay;
-        public string Hat, Glasses, Gloves, Face, Theme;
+        public string Hat, Glasses, Gloves, Face, Theme, Pet;
         public int X = int.MinValue, Y = int.MinValue;
         public float Scale = 0.8f, CounterScale = 1f;
         // counter position relative to the character's head, physical pixels; MinValue = automatic
@@ -218,6 +259,7 @@ namespace BongoBro
                 case Slot.Glasses: return Glasses;
                 case Slot.Gloves: return Gloves;
                 case Slot.Face: return Face;
+                case Slot.Pet: return Pet;
                 default: return Theme;
             }
         }
@@ -230,6 +272,7 @@ namespace BongoBro
                 case Slot.Glasses: Glasses = id; break;
                 case Slot.Gloves: Gloves = id; break;
                 case Slot.Face: Face = id; break;
+                case Slot.Pet: Pet = id; break;
                 default: Theme = id; break;
             }
         }
@@ -251,6 +294,7 @@ namespace BongoBro
                 sb.Append("gloves=").Append(Gloves ?? "").Append('\n');
                 sb.Append("face=").Append(Face ?? "").Append('\n');
                 sb.Append("theme=").Append(Theme ?? "").Append('\n');
+                sb.Append("pet=").Append(Pet ?? "").Append('\n');
                 sb.Append("x=").Append(X.ToString(ci)).Append('\n');
                 sb.Append("y=").Append(Y.ToString(ci)).Append('\n');
                 sb.Append("scale=").Append(Scale.ToString(ci)).Append('\n');
@@ -268,6 +312,10 @@ namespace BongoBro
                 sb.Append("pid=").Append(PlayerId ?? "").Append('\n');
                 sb.Append("ptoken=").Append(PlayerToken ?? "").Append('\n');
                 sb.Append("nick=").Append(Nick ?? "").Append('\n');
+                sb.Append("sound=").Append(SoundMode).Append('\n');
+                sb.Append("volume=").Append(Volume.ToString(ci)).Append('\n');
+                sb.Append("evsound=").Append(EventSounds ? "1" : "0").Append('\n');
+                sb.Append("dayphases=").Append(DayPhases ? "1" : "0").Append('\n');
                 string tmp = FilePath + ".tmp";
                 File.WriteAllText(tmp, sb.ToString(), Encoding.UTF8);
                 if (File.Exists(FilePath))
@@ -315,6 +363,7 @@ namespace BongoBro
                         case "gloves": d.Gloves = id; break;
                         case "face": d.Face = id; break;
                         case "theme": d.Theme = id; break;
+                        case "pet": d.Pet = id; break;
                         case "x": int.TryParse(v, NumberStyles.Integer, ci, out d.X); break;
                         case "y": int.TryParse(v, NumberStyles.Integer, ci, out d.Y); break;
                         case "scale": float.TryParse(v, NumberStyles.Float, ci, out d.Scale); break;
@@ -334,6 +383,10 @@ namespace BongoBro
                         case "pid": d.PlayerId = id; break;
                         case "ptoken": d.PlayerToken = id; break;
                         case "nick": d.Nick = id; break;
+                        case "sound": if (Array.IndexOf(Sound.Modes, v) >= 0) d.SoundMode = v; break;
+                        case "volume": float.TryParse(v, NumberStyles.Float, ci, out d.Volume); d.Volume = Math.Max(0f, Math.Min(1f, d.Volume)); break;
+                        case "evsound": d.EventSounds = v == "1"; break;
+                        case "dayphases": d.DayPhases = v == "1"; break;
                     }
                 }
                 if (d.Scale < 0.15f || d.Scale > 2f) d.Scale = 0.8f;
@@ -362,7 +415,48 @@ namespace BongoBro
             }
         }
 
-        public static void Save() { S.Save(); Dirty = false; }
+        public static void Save()
+        {
+            // developer mode is a sandbox: nothing reaches the real save file
+            if (!DevMode) S.Save();
+            Dirty = false;
+        }
+
+        // ---------------- developer mode ----------------
+        // Only the SHA-256 of "BongoBro.dev:" + code is shipped, the code itself is not in the source.
+        const string DevCodeHash = "f1b1bd751ae82d3ed357bc9feac82da87a25adc71491c4eb1a27be8de27e2dbb";
+        public static bool DevMode;
+        public static Mood? DevMood;
+        public static DayPhase? DevDay;
+
+        public static bool CheckDevCode(string code)
+        {
+            string s = "BongoBro.dev:" + (code ?? "").Trim().ToUpperInvariant();
+            using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create())
+            {
+                byte[] h = sha.ComputeHash(Encoding.UTF8.GetBytes(s));
+                StringBuilder sb = new StringBuilder();
+                foreach (byte b in h) sb.Append(b.ToString("x2"));
+                return sb.ToString() == DevCodeHash;
+            }
+        }
+
+        public static void EnterDev()
+        {
+            if (DevMode) return;
+            Save();          // keep the real progress safe first
+            DevMode = true;
+        }
+
+        // drops every sandbox change and reloads the real save
+        public static void ExitDev()
+        {
+            if (!DevMode) return;
+            DevMode = false;
+            DevMood = null;
+            DevDay = null;
+            Load();
+        }
 
         // Raised for every achievement unlocked (its reward is already granted).
         public static event Action<Achievement> Unlocked;
@@ -450,6 +544,49 @@ namespace BongoBro
         public static void Unequip(Slot s) { S.SetEquipped(s, null); Save(); }
     }
 
+    public class GearSet
+    {
+        public string Id, Name, Bonus;
+        public Rarity Rarity;
+
+        GearSet(string id, string name, Rarity r, string bonus) { Id = id; Name = name; Rarity = r; Bonus = bonus; }
+
+        // Ids are stored as Item.Set: never rename them.
+        public static readonly List<GearSet> All = new List<GearSet>
+        {
+            new GearSet("set_samurai", "Самурай", Rarity.Common, "Красное солнце и падающая сакура"),
+            new GearSet("set_pirate", "Пират", Rarity.Rare, "Пиратский флаг и золотые монеты на нажатиях"),
+            new GearSet("set_astro", "Космонавт", Rarity.Legendary, "Орбита с планетой, звёзды и невесомость"),
+        };
+
+        public List<Item> Pieces()
+        {
+            List<Item> l = new List<Item>();
+            foreach (Item it in Items.All) if (it.Set == Id) l.Add(it);
+            return l;
+        }
+
+        public int OwnedCount(SaveData s)
+        {
+            int n = 0;
+            foreach (Item it in Pieces()) if (s.Owned.Contains(it.Id)) n++;
+            return n;
+        }
+
+        public bool IsWorn(Func<Slot, string> equipped)
+        {
+            foreach (Item it in Pieces()) if (equipped(it.Slot) != it.Id) return false;
+            return true;
+        }
+
+        // the set whose every piece is equipped right now, or null
+        public static string Active(Func<Slot, string> equipped)
+        {
+            foreach (GearSet g in All) if (g.IsWorn(equipped)) return g.Id;
+            return null;
+        }
+    }
+
     public class Achievement
     {
         public string Id, Name, Desc;
@@ -474,7 +611,7 @@ namespace BongoBro
             new Achievement("ach_collect25", "Коллекционер", "Собрать 25 разных предметов", 25, 2, false, s => s.Owned.Count),
             new Achievement("ach_keys50k", "Марафонец", "Нажать 50 000 клавиш", 50000, 3, false, s => s.Keys),
             new Achievement("ach_keys250k", "Легенда клавиатуры", "Нажать 250 000 клавиш", 250000, 0, true, s => s.Keys),
-            new Achievement("ach_legendary", "Королевская коллекция", "Собрать все 15 legendary-предметов", 15, 0, true, OwnedLegendary),
+            new Achievement("ach_legendary", "Королевская коллекция", "Собрать все " + Items.OfRarity(Rarity.Legendary).Count + " legendary-предметов", Items.OfRarity(Rarity.Legendary).Count, 0, true, OwnedLegendary),
             new Achievement("ach_speed550", "Бог скорости", "Нажать 550 клавиш за одну минуту", 550, 0, true, s => s.BestKpm),
         };
 

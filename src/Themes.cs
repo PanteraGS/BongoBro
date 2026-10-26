@@ -5,7 +5,7 @@ using System.Drawing.Drawing2D;
 
 namespace BongoBro
 {
-    public enum ThemeFx { None, Retro, Sakura, Ocean, Marble, Cyber, Candy, Rgb, Cosmos }
+    public enum ThemeFx { None, Retro, Sakura, Ocean, Marble, Cyber, Candy, Rgb, Cosmos, Mission }
 
     // Colors of the keyboard, mouse and key counter ("Стиль" slot).
     public class Theme
@@ -47,6 +47,7 @@ namespace BongoBro
             { "th_candy",    new Theme(ThemeFx.Candy,  0xFFF0F8, 0xF8D2E6, 0xE6A0C8, 0xFFFFFF, 0xD2AAC8, 0xFFFFFF, 0xFFDCEC, 0xFFC8E0, 0xC8E6FF, 0xFFE6F4, 0xFF8CC8, 0xB43C82, 0xFF8CC8) },
             { "th_rgb",      new Theme(ThemeFx.Rgb,    0x18181C, 0x08080A, 0x000000, 0x26262C, 0x0C0C10, 0xFFFFFF, 0x1C1C22, 0x101014, 0x050506, 0x08080A, 0xFF0080, 0xFFFFFF, 0xFF0080) },
             { "th_cosmos",   new Theme(ThemeFx.Cosmos, 0x2A1050, 0x080418, 0x05020E, 0x2E2864, 0x120E30, 0xC8F0FF, 0x1A1238, 0x3C1C6E, 0x0A0620, 0x1A0C3C, 0xFF6EDC, 0xFFFFFF, 0x78E6FF) },
+            { "set_astro_style", new Theme(ThemeFx.Mission, 0x3C3F48, 0x24262C, 0x141518, 0xDADDE3, 0x868B96, 0x5CF07E, 0xECEEF2, 0x2C3B57, 0x1A2438, 0x0C1A10, 0xFF8A2A, 0x6CFF8E, 0xFF8A2A) },
         };
 
         public static Theme GetTheme(string id)
@@ -100,6 +101,10 @@ namespace BongoBro
                         top = Color.FromArgb(128, 126, 132); shade = Color.FromArgb(78, 76, 84);
                         return;
                     }
+                    break;
+                case ThemeFx.Mission:
+                    // orange command keys on the space-bar row and the edges, like a launch console
+                    if (row == SpaceRow && wu != 5 || xk < 0.07f || xk > 0.93f) { top = Color.FromArgb(255, 138, 42); shade = Color.FromArgb(170, 80, 20); return; }
                     break;
                 case ThemeFx.Cosmos:
                     top = Mix(th.Key, Hsv(250 + 40 * Sin(t * 2 + idx), 0.6f, 0.6f), 0.35f);

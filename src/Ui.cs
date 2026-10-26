@@ -176,6 +176,29 @@ namespace BongoBro
                             using (Pen hp = Art.P(Gold, 1.5f)) { g.DrawArc(hp, 1.5f, 3.5f, 5, 5, 90, 180); g.DrawArc(hp, 13.5f, 3.5f, 5, 5, 270, 180); }
                             using (SolidBrush br = new SolidBrush(Gold)) { g.FillRectangle(br, 9, 12, 2, 3); g.FillRectangle(br, 6, 15, 8, 2.5f); }
                             break;
+                        case "sound":
+                            using (GraphicsPath sp = new GraphicsPath())
+                            {
+                                sp.AddPolygon(new PointF[] { new PointF(2.5f, 7.5f), new PointF(6, 7.5f), new PointF(10.5f, 3.5f), new PointF(10.5f, 16.5f), new PointF(6, 12.5f), new PointF(2.5f, 12.5f) });
+                                using (SolidBrush br = new SolidBrush(c)) g.FillPath(br, sp);
+                            }
+                            g.DrawArc(p, 9, 6.5f, 6, 7, -60, 120);
+                            g.DrawArc(p, 9, 3.5f, 10, 13, -60, 120);
+                            break;
+                        case "sun":
+                            using (SolidBrush br = new SolidBrush(Gold)) g.FillEllipse(br, 6, 6, 8, 8);
+                            using (Pen r = Art.P(Gold, 1.6f))
+                                for (int i = 0; i < 8; i++)
+                                {
+                                    double a = i * Math.PI / 4;
+                                    g.DrawLine(r, 10 + (float)Math.Cos(a) * 6.5f, 10 + (float)Math.Sin(a) * 6.5f, 10 + (float)Math.Cos(a) * 9, 10 + (float)Math.Sin(a) * 9);
+                                }
+                            break;
+                        case "dev":
+                            g.DrawLines(p, new PointF[] { new PointF(7, 5), new PointF(2.5f, 10), new PointF(7, 15) });
+                            g.DrawLines(p, new PointF[] { new PointF(13, 5), new PointF(17.5f, 10), new PointF(13, 15) });
+                            using (Pen sl = Art.P(Bad, 1.7f)) g.DrawLine(sl, 11.5f, 3.5f, 8.5f, 16.5f);
+                            break;
                         case "podium":
                             using (SolidBrush b1 = new SolidBrush(Gold)) g.FillRectangle(b1, 7.5f, 4, 5, 13.5f);
                             using (SolidBrush b2 = new SolidBrush(Color.FromArgb(200, 208, 222))) g.FillRectangle(b2, 2, 8, 5, 9.5f);
@@ -343,7 +366,10 @@ namespace BongoBro
                     tc = Art.Mix(c, Color.White, 0.45f);
                 }
             }
-            Ui.TextC(g, text, Ui.F(Math.Min(15, r.Height * 0.42f), true), tc, r);
+            // shrink the font until the label fits on one line
+            float size = Math.Min(15, r.Height * 0.42f);
+            while (size > 9 && g.MeasureString(text, Ui.F(size, true)).Width > r.Width - 10) size -= 0.5f;
+            Ui.TextC(g, text, Ui.F(size, true), tc, r);
             if (enabled && a != null) AddHit(r, a);
         }
 

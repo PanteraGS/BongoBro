@@ -26,6 +26,9 @@ namespace BongoBro
                 case "gv_knight": GloveKnight(g, tx); return true;
                 case "gv_infinity": GloveInfinity(g, tx, t); return true;
                 case "gv_plasma": GlovePlasma(g, tx, t, seed); return true;
+                case "set_samurai_gloves": SamuraiGloves(g, tx); return true;
+                case "set_pirate_gloves": PirateGloves(g, tx); return true;
+                case "set_astro_gloves": AstroGloves(g, tx); return true;
             }
             return false;
         }
@@ -311,6 +314,7 @@ namespace BongoBro
                 case "gl_steampunk": GlSteampunk(g); break;
                 case "gl_laser": GlLaser(g, t); break;
                 case "gl_galaxy": GlGalaxy(g, t); break;
+                case "set_pirate_patch": PirateEyepatch(g); break;
             }
         }
 
@@ -663,6 +667,9 @@ namespace BongoBro
                 case "hat_viking": Viking(g); break;
                 case "hat_firecrown": FireCrown(g, t); break;
                 case "hat_halo": Halo(g, t); break;
+                case "set_samurai_band": SamuraiBand(g); break;
+                case "set_pirate_hat": PirateHat(g); break;
+                case "set_astro_helmet": AstroHelmet(g, t); break;
             }
         }
 
