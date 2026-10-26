@@ -34,6 +34,30 @@ namespace BongoBro
             get { return Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), "BongoBro.old.exe"); }
         }
 
+        // Ends a previous instance still running from the renamed BongoBro.old.exe.
+        public static void KillOldProcess()
+        {
+            int me = Process.GetCurrentProcess().Id;
+            List<Process> procs = new List<Process>(Process.GetProcessesByName("BongoBro.old"));
+            procs.AddRange(Process.GetProcessesByName("BongoBro"));
+            foreach (Process p in procs)
+            {
+                try
+                {
+                    string path = p.MainModule.FileName;
+                    bool ours = string.Equals(path, OldExePath, StringComparison.OrdinalIgnoreCase)
+                             || string.Equals(path, Application.ExecutablePath, StringComparison.OrdinalIgnoreCase);
+                    if (p.Id != me && ours)
+                    {
+                        p.Kill();
+                        p.WaitForExit(3000);
+                    }
+                }
+                catch { }
+                finally { p.Dispose(); }
+            }
+        }
+
         public static void CleanupOld()
         {
             try { if (File.Exists(OldExePath)) File.Delete(OldExePath); } catch { }
@@ -110,7 +134,9 @@ namespace BongoBro
                 if (err != null) { fail(err); return; }
                 if (Game.S != null) Game.Save();
                 try { Process.Start(exe, "--updated"); } catch (Exception ex) { fail("Обновление установлено, но не удалось перезапустить: " + ex.Message); return; }
-                Application.Exit();
+                // close the main window (the normal exit path) rather than Application.Exit()
+                if (Program.MainWin != null && !Program.MainWin.IsDisposed) Program.MainWin.Close();
+                else Application.Exit();
             };
             download.DownloadFileAsync(new Uri(downloadUrl), tmp);
         }

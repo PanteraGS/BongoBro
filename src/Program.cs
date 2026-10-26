@@ -29,7 +29,17 @@ namespace BongoBro
             using (Mutex m = new Mutex(false, "BongoBro.SingleInstance.v1"))
             {
                 bool owned;
-                try { owned = m.WaitOne(Updated ? 15000 : 0); }
+                try
+                {
+                    owned = m.WaitOne(Updated ? 5000 : 0);
+                    if (!owned && Updated)
+                    {
+                        // Versions up to 1.1.0 could hang on an error dialog while exiting after an update.
+                        // Its progress is already saved, so end that old process and carry on.
+                        Updater.KillOldProcess();
+                        owned = m.WaitOne(10000);
+                    }
+                }
                 catch (AbandonedMutexException) { owned = true; }
                 if (!owned)
                 {

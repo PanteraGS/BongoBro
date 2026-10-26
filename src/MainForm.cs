@@ -106,6 +106,15 @@ namespace BongoBro
             timer.Start();
             if (Program.Updated) Balloon("loot", "BongoBro обновлён", "Установлена версия " + Program.Version + ". Прогресс на месте.");
             CheckForUpdates();
+            // test hook: exit the way the updater does, to check shutdown is clean
+            int exitAfter;
+            if (int.TryParse(Environment.GetEnvironmentVariable("BONGO_SELFTEST_EXIT"), out exitAfter))
+            {
+                Timer quit = new Timer();
+                quit.Interval = exitAfter;
+                quit.Tick += delegate { quit.Stop(); Application.Exit(); };
+                quit.Start();
+            }
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -117,8 +126,16 @@ namespace BongoBro
             Game.Save();
             tray.Visible = false;
             tray.Dispose();
-            if (counter != null) counter.Close();
+            // Do not close other forms here: Application.Exit() enumerates the open forms while
+            // raising FormClosing, and closing one of them now throws "collection was modified".
+            if (counter != null) counter.Hide();
             base.OnFormClosing(e);
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            if (counter != null) counter.Dispose();
+            base.OnFormClosed(e);
         }
 
         // ---------------- input hooks ----------------
