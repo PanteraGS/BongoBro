@@ -74,6 +74,19 @@ namespace BongoBro
             SetPiece("set_astro", Rarity.Legendary, Slot.Gloves, "set_astro_gloves", "Перчатки скафандра");
             SetPiece("set_astro", Rarity.Legendary, Slot.Theme, "set_astro_style", "Пульт ЦУПа");
             SetPiece("set_astro", Rarity.Legendary, Slot.Pet, "set_astro_alien", "Инопланетянин");
+            // personal sets: anyone can wear the pieces, the bonus shows only on their character
+            SetPiece("set_sausage", Rarity.Rare, Slot.Hat, "set_sausage_hat", "Шапка-хот-дог");
+            SetPiece("set_sausage", Rarity.Rare, Slot.Gloves, "set_sausage_gloves", "Прихватки гриль-мастера");
+            SetPiece("set_sausage", Rarity.Rare, Slot.Theme, "set_sausage_style", "Кетчуп и горчица");
+            SetPiece("set_sausage", Rarity.Rare, Slot.Pet, "set_sausage_dachshund", "Такса-сосиска");
+            SetPiece("set_melon", Rarity.Rare, Slot.Hat, "set_melon_hat", "Арбузный шлем");
+            SetPiece("set_melon", Rarity.Rare, Slot.Glasses, "set_melon_glasses", "Очки-дольки");
+            SetPiece("set_melon", Rarity.Rare, Slot.Gloves, "set_melon_gloves", "Арбузные перчатки");
+            SetPiece("set_melon", Rarity.Rare, Slot.Theme, "set_melon_style", "Сочный арбуз");
+            SetPiece("set_beer", Rarity.Rare, Slot.Hat, "set_beer_hat", "Пивная каска");
+            SetPiece("set_beer", Rarity.Rare, Slot.Face, "set_beer_face", "Пенные усы");
+            SetPiece("set_beer", Rarity.Rare, Slot.Gloves, "set_beer_gloves", "Пенные перчатки");
+            SetPiece("set_beer", Rarity.Rare, Slot.Pet, "set_beer_hop", "Хмелёк");
         }
 
         static void SetPiece(string set, Rarity r, Slot s, string id, string name)
@@ -208,12 +221,28 @@ namespace BongoBro
     public static class Characters
     {
         // Ids are stored in the save file: never rename them.
-        public const string Yura = "yura", Vlad = "vlad";
-        public static readonly string[] Ids = { Yura, Vlad };
+        public const string Yura = "yura", Vlad = "vlad", Stas = "stas";
+        public static readonly string[] Ids = { Yura, Vlad, Stas };
 
         public static string Name(string id)
         {
-            return id == Vlad ? "Влад" : "Юра";
+            return id == Vlad ? "Влад" : id == Stas ? "Стасян" : "Юра";
+        }
+
+        // genitive: "только у Юры"
+        public static string NameWho(string id)
+        {
+            return id == Vlad ? "Влада" : id == Stas ? "Стасяна" : "Юры";
+        }
+
+        // debug renders: BONGO_PREVIEW_CHAR=vlad/stas draws that character
+        public static string Preview
+        {
+            get
+            {
+                string id = Environment.GetEnvironmentVariable("BONGO_PREVIEW_CHAR");
+                return Array.IndexOf(Ids, id) >= 0 ? id : null;
+            }
         }
 
         public static string Normalize(string id)
@@ -237,6 +266,9 @@ namespace BongoBro
         public HashSet<string> Achieved = new HashSet<string>();
         // best keys-per-minute, current daily streak and the last day the app ran (yyyy-MM-dd)
         public int BestKpm, Streak;
+        // achievement counters: night keys, immortals from regular boxes, best leaderboard place, keys per character
+        public long NightKeys, KeysYura, KeysVlad, KeysStas;
+        public int LuckyImm, BestRank;
         public string LastDay;
         public string Hat, Glasses, Gloves, Face, Theme, Pet;
         public int X = int.MinValue, Y = int.MinValue;
@@ -316,6 +348,12 @@ namespace BongoBro
                 sb.Append("volume=").Append(Volume.ToString(ci)).Append('\n');
                 sb.Append("evsound=").Append(EventSounds ? "1" : "0").Append('\n');
                 sb.Append("dayphases=").Append(DayPhases ? "1" : "0").Append('\n');
+                sb.Append("nightkeys=").Append(NightKeys.ToString(ci)).Append('\n');
+                sb.Append("lucky=").Append(LuckyImm.ToString(ci)).Append('\n');
+                sb.Append("bestrank=").Append(BestRank.ToString(ci)).Append('\n');
+                sb.Append("kyura=").Append(KeysYura.ToString(ci)).Append('\n');
+                sb.Append("kvlad=").Append(KeysVlad.ToString(ci)).Append('\n');
+                sb.Append("kstas=").Append(KeysStas.ToString(ci)).Append('\n');
                 string tmp = FilePath + ".tmp";
                 File.WriteAllText(tmp, sb.ToString(), Encoding.UTF8);
                 if (File.Exists(FilePath))
@@ -387,6 +425,12 @@ namespace BongoBro
                         case "volume": float.TryParse(v, NumberStyles.Float, ci, out d.Volume); d.Volume = Math.Max(0f, Math.Min(1f, d.Volume)); break;
                         case "evsound": d.EventSounds = v == "1"; break;
                         case "dayphases": d.DayPhases = v == "1"; break;
+                        case "nightkeys": long.TryParse(v, NumberStyles.Integer, ci, out d.NightKeys); break;
+                        case "lucky": int.TryParse(v, NumberStyles.Integer, ci, out d.LuckyImm); break;
+                        case "bestrank": int.TryParse(v, NumberStyles.Integer, ci, out d.BestRank); break;
+                        case "kyura": long.TryParse(v, NumberStyles.Integer, ci, out d.KeysYura); break;
+                        case "kvlad": long.TryParse(v, NumberStyles.Integer, ci, out d.KeysVlad); break;
+                        case "kstas": long.TryParse(v, NumberStyles.Integer, ci, out d.KeysStas); break;
                     }
                 }
                 if (d.Scale < 0.15f || d.Scale > 2f) d.Scale = 0.8f;
@@ -465,6 +509,10 @@ namespace BongoBro
         public static bool AddKey()
         {
             S.Keys++;
+            if (S.Character == Characters.Vlad) S.KeysVlad++;
+            else if (S.Character == Characters.Stas) S.KeysStas++;
+            else S.KeysYura++;
+            if (DateTime.Now.Hour < 5) S.NightKeys++;
             Dirty = true;
             bool box = false;
             if (S.Keys % BoxEvery == 0) { S.Boxes++; Save(); box = true; }
@@ -473,6 +521,17 @@ namespace BongoBro
         }
 
         public static void AddClick() { S.Clicks++; Dirty = true; CheckAchievements(); }
+
+        // the top-3 achievement counts only once the table has enough players
+        public const int TopMinPlayers = 5;
+
+        public static void ReportRank(int rank, int players)
+        {
+            if (rank <= 0 || players < TopMinPlayers || (S.BestRank > 0 && rank >= S.BestRank)) return;
+            S.BestRank = rank;
+            Save();
+            CheckAchievements();
+        }
 
         public static void ReportKpm(int kpm)
         {
@@ -513,6 +572,7 @@ namespace BongoBro
             S.Opened++;
             Item it = Items.RollNew(Rnd, S.Owned);
             isNew = S.Owned.Add(it.Id);
+            if (it.Rarity == Rarity.Immortal) S.LuckyImm++;
             Save();
             CheckAchievements();
             return it;
@@ -549,7 +609,9 @@ namespace BongoBro
         public string Id, Name, Bonus;
         public Rarity Rarity;
 
-        GearSet(string id, string name, Rarity r, string bonus) { Id = id; Name = name; Rarity = r; Bonus = bonus; }
+        public string Owner;   // character id of a personal set, or null when the bonus works for everyone
+
+        GearSet(string id, string name, Rarity r, string bonus, string owner = null) { Id = id; Name = name; Rarity = r; Bonus = bonus; Owner = owner; }
 
         // Ids are stored as Item.Set: never rename them.
         public static readonly List<GearSet> All = new List<GearSet>
@@ -557,7 +619,13 @@ namespace BongoBro
             new GearSet("set_samurai", "Самурай", Rarity.Common, "Красное солнце и падающая сакура"),
             new GearSet("set_pirate", "Пират", Rarity.Rare, "Пиратский флаг и золотые монеты на нажатиях"),
             new GearSet("set_astro", "Космонавт", Rarity.Legendary, "Орбита с планетой, звёзды и невесомость"),
+            new GearSet("set_sausage", "Гриль-мастер", Rarity.Rare, "Жар гриля, дымок и сосиски на нажатиях", Characters.Yura),
+            new GearSet("set_melon", "Бахча", Rarity.Rare, "Арбузный дождь и семечки на нажатиях", Characters.Vlad),
+            new GearSet("set_beer", "Пивной фестиваль", Rarity.Rare, "Флажки, пузырьки и брызги пены на нажатиях", Characters.Stas),
         };
+
+        // a personal set's bonus works only on its own character
+        public bool BonusFor(string character) { return Owner == null || Owner == character; }
 
         public List<Item> Pieces()
         {
@@ -580,9 +648,9 @@ namespace BongoBro
         }
 
         // the set whose every piece is equipped right now, or null
-        public static string Active(Func<Slot, string> equipped)
+        public static string Active(Func<Slot, string> equipped, string character)
         {
-            foreach (GearSet g in All) if (g.IsWorn(equipped)) return g.Id;
+            foreach (GearSet g in All) if (g.BonusFor(character) && g.IsWorn(equipped)) return g.Id;
             return null;
         }
     }
@@ -613,7 +681,32 @@ namespace BongoBro
             new Achievement("ach_keys250k", "Легенда клавиатуры", "Нажать 250 000 клавиш", 250000, 0, true, s => s.Keys),
             new Achievement("ach_legendary", "Королевская коллекция", "Собрать все " + Items.OfRarity(Rarity.Legendary).Count + " legendary-предметов", Items.OfRarity(Rarity.Legendary).Count, 0, true, OwnedLegendary),
             new Achievement("ach_speed550", "Бог скорости", "Нажать 550 клавиш за одну минуту", 550, 0, true, s => s.BestKpm),
+            new Achievement("ach_owl", "Сова", "Нажать 500 клавиш между 0:00 и 5:00", 500, 1, false, s => s.NightKeys),
+            new Achievement("ach_zoo", "Зоопарк", "Собрать 10 питомцев", 10, 2, false, OwnedPets),
+            new Achievement("ach_setfull", "Полный комплект", "Собрать все 4 вещи любого сета", 4, 2, false, BestSet),
+            new Achievement("ach_lucky", "Счастливчик", "Выбить immortal из обычного лутбокса", 1, 2, false, s => s.LuckyImm),
+            new Achievement("ach_yura", "Сосисочник", "Нажать 10 000 клавиш за Юру", 10000, 1, false, s => s.KeysYura),
+            new Achievement("ach_vlad", "Арбузный сок", "Нажать 10 000 клавиш за Влада", 10000, 1, false, s => s.KeysVlad),
+            new Achievement("ach_stas", "Стасян одобряет", "Нажать 10 000 клавиш за Стасяна", 10000, 1, false, s => s.KeysStas),
+            new Achievement("ach_gang", "Вся банда", "Нажать по 1 000 клавиш за каждого персонажа", 1000, 2, false, s => Math.Min(s.KeysYura, Math.Min(s.KeysVlad, s.KeysStas))),
+            new Achievement("ach_streak30", "Железная воля", "Запускать BongoBro 30 дней подряд", 30, 3, false, s => s.Streak),
+            new Achievement("ach_million", "Миллионер", "Нажать 1 000 000 клавиш", 1000000, 0, true, s => s.Keys),
+            new Achievement("ach_top3", "Пьедестал", "Попасть в топ-3 лидерборда (от " + Game.TopMinPlayers + " игроков)", 1, 0, true, s => s.BestRank > 0 && s.BestRank <= 3 ? 1 : 0),
         };
+
+        static long OwnedPets(SaveData s)
+        {
+            int n = 0;
+            foreach (Item it in Items.OfSlot(Slot.Pet)) if (s.Owned.Contains(it.Id)) n++;
+            return n;
+        }
+
+        static long BestSet(SaveData s)
+        {
+            int best = 0;
+            foreach (GearSet g in GearSet.All) best = Math.Max(best, g.OwnedCount(s));
+            return best;
+        }
 
         static long EquippedSlots(SaveData s)
         {

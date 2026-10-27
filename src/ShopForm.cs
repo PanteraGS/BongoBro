@@ -11,8 +11,10 @@ namespace BongoBro
         // index into Items.Slots, or SetsTab for the gear sets page
         const int SetsTab = -1;
         int tab = 0;
+        bool personal;   // sets page: personal sets instead of the common ones
 
         public void ShowSetsTab() { tab = SetsTab; }
+        public void ShowPersonalSets() { tab = SetsTab; personal = true; }
 
         public ShopForm() : base(1160, 640, "BongoBro: гардероб") { }
 
@@ -36,7 +38,8 @@ namespace BongoBro
             for (int i = 0; i < Characters.Ids.Length; i++)
             {
                 string id = Characters.Ids[i];
-                RectangleF r = new RectangleF(28 + i * 122, 70, 116, 30);
+                float bw = (238 - 6 * (Characters.Ids.Length - 1)) / (float)Characters.Ids.Length;
+                RectangleF r = new RectangleF(28 + i * (bw + 6), 70, bw, 30);
                 Button(g, r, Characters.Name(id), Ui.Accent, s.Character == id, true, () => MainForm.SetCharacter(id));
             }
 
@@ -101,13 +104,19 @@ namespace BongoBro
 
         void PaintSets(Graphics g, float t, SaveData s)
         {
-            for (int i = 0; i < GearSet.All.Count; i++)
+            // common sets and personal (one per character) sets on two sub-pages
+            Button(g, new RectangleF(292, 110, 200, 30), "Общие сеты", Ui.Gold, !personal, true, () => { personal = false; });
+            Button(g, new RectangleF(500, 110, 200, 30), "Личные сеты", Ui.Gold, personal, true, () => { personal = true; });
+            List<GearSet> shown = new List<GearSet>();
+            foreach (GearSet gs in GearSet.All) if ((gs.Owner != null) == personal) shown.Add(gs);
+            for (int i = 0; i < shown.Count; i++)
             {
-                GearSet set = GearSet.All[i];
+                GearSet set = shown[i];
                 List<Item> pieces = set.Pieces();
-                RectangleF row = new RectangleF(292, 110 + i * 162, 856, 154);
+                RectangleF row = new RectangleF(292, 148 + i * 150, 856, 144);
                 Color rc = Items.RarityColor(set.Rarity);
                 bool worn = set.IsWorn(s.GetEquipped);
+                bool mine = set.BonusFor(s.Character);
                 int have = set.OwnedCount(s);
                 using (GraphicsPath p = Art.RR(row, 14))
                 {
@@ -115,21 +124,23 @@ namespace BongoBro
                     using (SolidBrush b = new SolidBrush(Art.Mix(Ui.Panel, rc, 0.12f))) g.FillPath(b, p);
                     using (Pen pen = new Pen(worn ? Ui.Gold : Art.A(160, rc), 1.5f)) g.DrawPath(pen, p);
                 }
-                Ui.TextL(g, set.Name, Ui.F(22, true), Color.White, row.X + 18, row.Y + 12);
-                Ui.TextL(g, "СЕТ  •  " + Items.RarityName(set.Rarity), Ui.F(12, true), rc, row.X + 20, row.Y + 44);
+                Ui.TextL(g, set.Name, Ui.F(22, true), Color.White, row.X + 18, row.Y + 8);
+                string kind = set.Owner != null ? "ЛИЧНЫЙ СЕТ: " + Characters.Name(set.Owner).ToUpper() : "СЕТ";
+                Ui.TextL(g, kind + "  •  " + Items.RarityName(set.Rarity), Ui.F(12, true), rc, row.X + 20, row.Y + 40);
                 using (StringFormat sf = new StringFormat())
                 using (SolidBrush b = new SolidBrush(Ui.Sub))
-                    g.DrawString("Бонус: " + set.Bonus, Ui.F(13, false), b, new RectangleF(row.X + 20, row.Y + 64, 300, 40), sf);
-                Ui.Progress(g, new RectangleF(row.X + 20, row.Y + 108, 180, 6), have / (float)pieces.Count, worn ? Ui.Good : rc);
-                Ui.TextL(g, "Собрано " + have + "/" + pieces.Count, Ui.F(12, true), Ui.Fg, row.X + 208, row.Y + 101);
-                RectangleF btn = new RectangleF(row.X + 20, row.Y + 120, 220, 28);
-                if (worn) Button(g, btn, "Бонус активен ✓", Ui.Good, true, true, () => { foreach (Item it in pieces) Game.Unequip(it.Slot); });
+                    g.DrawString("Бонус: " + set.Bonus, Ui.F(13, false), b, new RectangleF(row.X + 20, row.Y + 58, 300, 40), sf);
+                Ui.Progress(g, new RectangleF(row.X + 20, row.Y + 100, 180, 6), have / (float)pieces.Count, worn ? Ui.Good : rc);
+                Ui.TextL(g, "Собрано " + have + "/" + pieces.Count, Ui.F(12, true), Ui.Fg, row.X + 208, row.Y + 93);
+                RectangleF btn = new RectangleF(row.X + 20, row.Y + 112, 240, 28);
+                if (worn && mine) Button(g, btn, "Бонус активен ✓", Ui.Good, true, true, () => { foreach (Item it in pieces) Game.Unequip(it.Slot); });
+                else if (worn) Button(g, btn, "Бонус только у " + Characters.NameWho(set.Owner), Ui.Sub, true, true, () => MainForm.SetCharacter(set.Owner));
                 else Button(g, btn, have == pieces.Count ? "Надеть сет" : "Собери все 4 вещи", Ui.Gold, true, have == pieces.Count, () => { foreach (Item it in pieces) Game.Equip(it); });
 
                 for (int k = 0; k < pieces.Count; k++)
                 {
                     Item it = pieces[k];
-                    RectangleF r = new RectangleF(row.X + 336 + k * 130, row.Y + 2, 120, 150);
+                    RectangleF r = new RectangleF(row.X + 336 + k * 130, row.Y + 2, 120, 140);
                     bool owned = s.Owned.Contains(it.Id);
                     bool eq = s.GetEquipped(it.Slot) == it.Id;
                     Ui.ItemCard(g, r, it, t + k * 0.4f, !owned, 0, Hover(r) && owned);

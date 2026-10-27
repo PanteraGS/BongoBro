@@ -53,7 +53,7 @@ namespace BongoBro
     {
         readonly MainForm owner;
 
-        public DevForm(MainForm owner) : base(700, 640, "BongoBro: режим разработчика")
+        public DevForm(MainForm owner) : base(700, 690, "BongoBro: режим разработчика")
         {
             this.owner = owner;
         }
@@ -115,6 +115,13 @@ namespace BongoBro
             {
                 if (i == 3) { foreach (Slot sl in Items.Slots) s.SetEquipped(sl, null); return; }
                 foreach (Item it in GearSet.All[i].Pieces()) { s.Owned.Add(it.Id); s.SetEquipped(it.Slot, it.Id); }
+            }, -1);
+            // personal sets also switch to their character, so the bonus shows
+            Row(g, new[] { "Гриль-мастер (Юра)", "Бахча (Влад)", "Пивной фестиваль (Стасян)" }, i =>
+            {
+                GearSet set = GearSet.All[3 + i];
+                foreach (Item it in set.Pieces()) { s.Owned.Add(it.Id); s.SetEquipped(it.Slot, it.Id); }
+                MainForm.SetCharacter(set.Owner);
             }, -1);
 
             Section(g, "Эффекты");

@@ -33,7 +33,7 @@ namespace BongoBro
             }
         }
 
-        public string ActiveSet { get { return GearSet.Active(Equipped); } }
+        public string ActiveSet { get { return GearSet.Active(Equipped, Character); } }
 
         public static Pose FromSave(SaveData s, float t)
         {
@@ -296,13 +296,10 @@ namespace BongoBro
 
         static void DrawBody(Graphics g, Pose p)
         {
+            if (p.Character == Characters.Stas) { DrawBodyStas(g, p); return; }
             // oversized black t-shirt with dropped shoulders
-            using (GraphicsPath tp = new GraphicsPath())
+            using (GraphicsPath tp = TorsoPath())
             {
-                tp.AddBezier(50, 336, 50, 290, 70, 252, 140, 238);
-                tp.AddLine(140, 238, 220, 238);
-                tp.AddBezier(220, 238, 290, 252, 310, 290, 310, 336);
-                tp.CloseFigure();
                 Grad(g, tp, ShirtHi, Shirt);
                 GraphicsState st = g.Save();
                 g.SetClip(tp, CombineMode.Intersect);
@@ -321,7 +318,25 @@ namespace BongoBro
                 g.Restore(st);
                 Stroke(g, JacketInk, 3f, tp);
             }
-            // neck
+            DrawNeck(g);
+            // crew neck rib
+            Bez(g, Mix(Shirt, Color.Black, 0.4f), 7f, 152, 236, 162, 258, 198, 258, 208, 236);
+            Bez(g, A(60, Color.White), 1.4f, 156, 238, 166, 255, 194, 255, 204, 238);
+            if (p.Character == Characters.Vlad) DrawChain(g);
+        }
+
+        static GraphicsPath TorsoPath()
+        {
+            GraphicsPath tp = new GraphicsPath();
+            tp.AddBezier(50, 336, 50, 290, 70, 252, 140, 238);
+            tp.AddLine(140, 238, 220, 238);
+            tp.AddBezier(220, 238, 290, 252, 310, 290, 310, 336);
+            tp.CloseFigure();
+            return tp;
+        }
+
+        static void DrawNeck(Graphics g)
+        {
             using (GraphicsPath np = new GraphicsPath())
             {
                 np.AddLine(162, 184, 160, 238);
@@ -339,10 +354,6 @@ namespace BongoBro
                 Line(g, Ink, 2.2f, 162, 196, 160, 238);
                 Line(g, Ink, 2.2f, 198, 196, 200, 238);
             }
-            // crew neck rib
-            Bez(g, Mix(Shirt, Color.Black, 0.4f), 7f, 152, 236, 162, 258, 198, 258, 208, 236);
-            Bez(g, A(60, Color.White), 1.4f, 156, 238, 166, 255, 194, 255, 204, 238);
-            if (p.Character == Characters.Vlad) DrawChain(g);
         }
 
         static GraphicsPath FacePath()
@@ -361,6 +372,7 @@ namespace BongoBro
         {
             UseCharacter(p.Character);
             if (p.Character == Characters.Vlad) { DrawHeadVlad(g, p); return; }
+            if (p.Character == Characters.Stas) { DrawHeadStas(g, p); return; }
             float t = p.T;
             if (p.Hat == "hat_halo") HaloBack(g, t);
             using (GraphicsPath bh = new GraphicsPath())
@@ -478,7 +490,7 @@ namespace BongoBro
             else { lh = p.LeftDown ? new PointF(122, 298) : new PointF(112, 246); lDown = p.LeftDown; }
             PointF rh = p.RightDown ? new PointF(238, 298) : new PointF(248, 246);
             Arm(g, ls, lh, p, lDown, false);
-            Arm(g, rs, rh, p, p.RightDown, p.Character != Characters.Vlad);
+            Arm(g, rs, rh, p, p.RightDown, p.Character == Characters.Yura);
         }
 
         // Cursor movement is mirrored: his "right" and "forward" point at the viewer's left and down.
@@ -492,7 +504,8 @@ namespace BongoBro
             float ux = (float)(dx / len), uy = (float)(dy / len);
             PointF wrist = new PointF(h.X + ux * 12, h.Y + uy * 12);
             PointF sh = new PointF(s.X + ux * 8, s.Y + uy * 8);
-            float sl = Math.Min((float)len * 0.55f, 26);
+            // Stasyan's jacket has long sleeves that reach the wrist
+            float sl = p.Character == Characters.Stas ? Math.Max((float)len - 22, 0) : Math.Min((float)len * 0.55f, 26);
             PointF hem = new PointF(sh.X - ux * sl, sh.Y - uy * sl);
             using (Pen o = P(Ink, 24)) g.DrawLine(o, sh, wrist);
             using (Pen f = P(Skin, 19.5f)) g.DrawLine(f, sh, wrist);

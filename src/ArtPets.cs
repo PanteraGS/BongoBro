@@ -53,6 +53,8 @@ namespace BongoBro
                 case "set_samurai_shiba": Dog(g, Color.FromArgb(222, 150, 84), true, t, sleep); break;
                 case "set_pirate_parrot": Parrot(g, t, sleep); break;
                 case "set_astro_alien": Alien(g, t, sleep); break;
+                case "set_sausage_dachshund": Dachshund(g, t, sleep); break;
+                case "set_beer_hop": HopCone(g, t, sleep); break;
             }
         }
 

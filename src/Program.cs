@@ -83,10 +83,10 @@ namespace BongoBro
             Application.Run(host);
         }
 
-        static ShopForm SetsShop()
+        static ShopForm SetsShop(bool personal = false)
         {
             ShopForm f = new ShopForm();
-            f.ShowSetsTab();
+            if (personal) f.ShowPersonalSets(); else f.ShowSetsTab();
             return f;
         }
 
@@ -96,10 +96,10 @@ namespace BongoBro
             Application.EnableVisualStyles();
             Game.S = SaveData.Load();
             if (which == "loot-gold") { Game.S.GoldBoxes = 2; which = "loot"; }
-            if (Environment.GetEnvironmentVariable("BONGO_PREVIEW_CHAR") == Characters.Vlad) Game.S.Character = Characters.Vlad;
+            if (Characters.Preview != null) Game.S.Character = Characters.Preview;
             Form f = which == "loot" ? (Form)new LootForm() : which == "shop" ? (Form)new ShopForm()
                 : which == "update" ? (Form)new UpdateForm() : which == "board" ? (Form)new LeaderboardForm()
-                : which == "dev" ? (Form)new DevForm(null) : which == "sets" ? (Form)SetsShop() : new AchievementsForm();
+                : which == "dev" ? (Form)new DevForm(null) : which == "sets" ? (Form)SetsShop() : which == "psets" ? (Form)SetsShop(true) : new AchievementsForm();
             f.StartPosition = FormStartPosition.Manual;
             f.Location = new Point(-5000, -5000);
             f.ShowInTaskbar = false;
@@ -175,7 +175,7 @@ namespace BongoBro
         public static void ExportFeatures(string path)
         {
             Game.S = new SaveData();
-            using (Bitmap b = new Bitmap(1440, 980, PixelFormat.Format32bppArgb))
+            using (Bitmap b = new Bitmap(1440, 1220, PixelFormat.Format32bppArgb))
             using (Graphics g = Graphics.FromImage(b))
             {
                 g.SmoothingMode = SmoothingMode.AntiAlias;
@@ -216,9 +216,28 @@ namespace BongoBro
                     Character(g, new Rectangle(724 + i * 238, 250, 228, 228), p, dn[i]);
                 }
                 int n = 0;
+                // personal sets on their owners, calm and in the middle of a key press
+                for (int i = 0; i < 6; i++)
+                {
+                    GearSet set = GearSet.All[3 + i % 3];
+                    Pose p = new Pose();
+                    p.T = 4.1f + i; p.Character = set.Owner;
+                    if (i >= 3) { p.PetHop = 0.55f; p.LeftDown = true; p.LitKey = 20; }
+                    foreach (Item it in set.Pieces())
+                        switch (it.Slot)
+                        {
+                            case Slot.Hat: p.Hat = it.Id; break;
+                            case Slot.Glasses: p.Glasses = it.Id; break;
+                            case Slot.Gloves: p.Gloves = it.Id; break;
+                            case Slot.Face: p.Face = it.Id; break;
+                            case Slot.Theme: p.Theme = it.Id; break;
+                            case Slot.Pet: p.Pet = it.Id; break;
+                        }
+                    Character(g, new Rectangle(10 + i * 238, 490, 228, 228), p, set.Name + (i >= 3 ? " (нажатие)" : ""));
+                }
                 foreach (Item it in Items.OfSlot(Slot.Pet))
                 {
-                    Ui.ItemCard(g, new RectangleF(10 + (n % 12) * 118, 500 + (n / 12) * 156, 110, 148), it, 1.4f + n * 0.3f, false, 0, false);
+                    Ui.ItemCard(g, new RectangleF(10 + (n % 12) * 118, 740 + (n / 12) * 156, 110, 148), it, 1.4f + n * 0.3f, false, 0, false);
                     n++;
                 }
                 b.Save(path, ImageFormat.Png);
@@ -245,8 +264,8 @@ namespace BongoBro
         public static void ExportPreview(string path)
         {
             Game.S = new SaveData();
-            if (Environment.GetEnvironmentVariable("BONGO_PREVIEW_CHAR") == Characters.Vlad) Game.S.Character = Characters.Vlad;
-            using (Bitmap b = new Bitmap(1440, 1280, PixelFormat.Format32bppArgb))
+            if (Characters.Preview != null) Game.S.Character = Characters.Preview;
+            using (Bitmap b = new Bitmap(1440, 2150, PixelFormat.Format32bppArgb))
             using (Graphics g = Graphics.FromImage(b))
             {
                 g.SmoothingMode = SmoothingMode.AntiAlias;
@@ -263,7 +282,7 @@ namespace BongoBro
                 for (int i = 0; i < looks.Length; i++)
                 {
                     Pose p = new Pose();
-                    if (Environment.GetEnvironmentVariable("BONGO_PREVIEW_CHAR") == Characters.Vlad) p.Character = Characters.Vlad;
+                    if (Characters.Preview != null) p.Character = Characters.Preview;
                     p.T = 0.7f + i;
                     p.Hat = looks[i][0]; p.Glasses = looks[i][1]; p.Gloves = looks[i][2]; p.Face = looks[i][3]; p.Theme = looks[i][4];
                     if (i % 2 == 0) { p.LeftDown = true; p.LitKey = 14; } else { p.OnMouse = true; p.MouseDown = true; }

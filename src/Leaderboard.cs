@@ -110,7 +110,11 @@ namespace BongoBro
                     }
                 }
                 catch { }
-                Post(ui, () => done(b));
+                Post(ui, () =>
+                {
+                    if (b != null && b.Me != null) Game.ReportRank(b.Me.Rank, b.Players);
+                    done(b);
+                });
             });
         }
 

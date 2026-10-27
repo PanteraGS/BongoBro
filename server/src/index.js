@@ -48,7 +48,7 @@ async function submit(req, env) {
   const id = String(b.id || ""), token = String(b.token || "");
   const name = String(b.name || "").trim().replace(/\s+/g, " ");
   const keys = Math.floor(Number(b.keys));
-  const ch = b.char === "vlad" ? "vlad" : "yura";
+  const ch = ["yura", "vlad", "stas"].includes(b.char) ? b.char : "yura";
   if (!/^[0-9a-f]{32}$/.test(id) || !/^[0-9a-f]{64}$/.test(token)) return json({ error: "bad_id" }, 400);
   if (!NAME_RE.test(name)) return json({ error: "bad_name", got: name }, 400);
   if (!Number.isFinite(keys) || keys < 0) return json({ error: "bad_keys" }, 400);

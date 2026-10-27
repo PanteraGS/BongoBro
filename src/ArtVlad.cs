@@ -27,6 +27,18 @@ namespace BongoBro
                 Shirt = Color.FromArgb(52, 74, 152);
                 ShirtHi = Color.FromArgb(92, 118, 200);
             }
+            else if (id == Characters.Stas)
+            {
+                Skin = Color.FromArgb(244, 212, 190);
+                SkinShade = Color.FromArgb(228, 182, 158);
+                SkinDeep = Color.FromArgb(192, 136, 110);
+                Ink = Color.FromArgb(62, 40, 32);
+                HairC = Color.FromArgb(118, 80, 48);
+                HairDark = Color.FromArgb(64, 40, 22);
+                HairLight = Color.FromArgb(168, 122, 78);
+                Shirt = Color.FromArgb(232, 168, 30);       // beer-print jacket sleeves
+                ShirtHi = Color.FromArgb(255, 212, 92);
+            }
             else
             {
                 Skin = Color.FromArgb(246, 210, 184);

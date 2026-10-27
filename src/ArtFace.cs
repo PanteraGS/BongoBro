@@ -348,6 +348,7 @@ namespace BongoBro
             float t = p.T;
             switch (p.Face)
             {
+                case "set_beer_face": BeerFoamMustache(g); break;
                 case "fc_mustache":
                     for (int k = 0; k < 2; k++)
                     {

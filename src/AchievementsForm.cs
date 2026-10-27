@@ -6,17 +6,21 @@ namespace BongoBro
 {
     public class AchievementsForm : CustomForm
     {
-        public AchievementsForm() : base(800, 646, "BongoBro: достижения") { }
+        // two columns of achievements
+        const int PerColumn = 11;
+
+        public AchievementsForm() : base(1240, 652, "BongoBro: достижения") { }
 
         protected override void PaintUi(Graphics g, float t)
         {
             SaveData s = Game.S;
             TitleBar(g, "ДОСТИЖЕНИЯ");
             Ui.TextR(g, "Выполнено: " + s.Achieved.Count + " / " + Achievement.All.Count, Ui.F(15, true), Color.FromArgb(255, 220, 120), new RectangleF(W - 330, 10, 270, 30));
+            float cw = (W - 48) / 2f;
             for (int i = 0; i < Achievement.All.Count; i++)
             {
                 Achievement a = Achievement.All[i];
-                RectangleF r = new RectangleF(16, 62 + i * 57, W - 32, 50);
+                RectangleF r = new RectangleF(16 + (i / PerColumn) * (cw + 16), 62 + (i % PerColumn) * 53, cw, 47);
                 bool done = s.Achieved.Contains(a.Id);
                 long cur = Math.Min(a.Progress(s), a.Target);
                 Color accent = a.Gold ? Ui.Gold : Ui.Accent;
@@ -29,20 +33,20 @@ namespace BongoBro
                     using (Pen pen = new Pen(done ? Art.A(200, a.Gold ? Ui.Gold : Ui.Good) : Ui.Border, 1.4f)) g.DrawPath(pen, p);
                 }
 
-                Trophy(g, r.X + 30, r.Y + 25, done ? (a.Gold ? Ui.Gold : Color.FromArgb(150, 220, 255)) : Color.FromArgb(90, 96, 124), done);
-                Ui.TextL(g, a.Name, Ui.F(15, true), done ? Color.White : Ui.Fg, r.X + 58, r.Y + 5);
-                Ui.TextL(g, a.Desc, Ui.F(12.5f, false), Ui.Sub, r.X + 58, r.Y + 26);
+                Trophy(g, r.X + 28, r.Y + 24, done ? (a.Gold ? Ui.Gold : Color.FromArgb(150, 220, 255)) : Color.FromArgb(90, 96, 124), done);
+                Ui.TextL(g, a.Name, Ui.F(14, true), done ? Color.White : Ui.Fg, r.X + 54, r.Y + 4);
+                Ui.TextL(g, a.Desc, Ui.F(11.5f, false), Ui.Sub, r.X + 54, r.Y + 25);
 
                 // progress
-                RectangleF bar = new RectangleF(r.X + 360, r.Y + 30, 190, 7);
+                RectangleF bar = new RectangleF(r.X + 330, r.Y + 28, 112, 7);
                 Ui.Progress(g, bar, cur / (float)a.Target, done ? Ui.Good : accent);
                 string prog = done ? "Готово ✓" : Ui.Num(cur) + " / " + Ui.Num(a.Target);
-                Ui.TextC(g, prog, Ui.F(12, true), done ? Ui.Good : Ui.Fg, new RectangleF(bar.X, r.Y + 6, bar.Width, 20));
+                Ui.TextC(g, prog, Ui.F(11.5f, true), done ? Ui.Good : Ui.Fg, new RectangleF(bar.X - 10, r.Y + 5, bar.Width + 20, 20));
 
                 // reward
-                float bx = r.Right - 196;
-                Art.DrawLootBox(g, bx + 18, r.Y + 28, 30, t, false, a.Gold);
-                Ui.TextL(g, a.RewardText(), Ui.F(13, true), a.Gold ? Ui.Gold : Color.FromArgb(200, 184, 255), bx + 44, r.Y + 15);
+                float bx = r.Right - 136;
+                Art.DrawLootBox(g, bx + 14, r.Y + 26, 26, t, false, a.Gold);
+                Ui.TextL(g, a.Gold ? "Золотой" : a.RewardText(), Ui.F(12, true), a.Gold ? Ui.Gold : Color.FromArgb(200, 184, 255), bx + 36, r.Y + 14);
             }
         }
 

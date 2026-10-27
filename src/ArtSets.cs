@@ -206,6 +206,7 @@ namespace BongoBro
                 float px = 180 + Cos(a) * 150, py = 112 + Sin(a) * 34;
                 if (Sin(a) < 0) Planet(g, px, py, t);
             }
+            else PersonalBonusBack(g, p, set, t);
         }
 
         // effects drawn in front of the character
@@ -240,6 +241,7 @@ namespace BongoBro
                 float a = t * 0.6f;
                 if (Sin(a) >= 0) Planet(g, 180 + Cos(a) * 150, 112 + Sin(a) * 34, t);
             }
+            else PersonalBonusFront(g, p, set, t);
         }
 
         static void Planet(Graphics g, float x, float y, float t)
