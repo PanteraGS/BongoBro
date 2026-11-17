@@ -16,6 +16,7 @@ namespace BongoBro
         public void ShowSetsTab() { tab = SetsTab; }
         public void ShowPersonalSets() { tab = SetsTab; personal = true; }
         public void ShowNewYearTab() { tab = NewYearTab; }
+        public void ShowSlotTab(Slot sl) { tab = Array.IndexOf(Items.Slots, sl); }
 
         public ShopForm() : base(1160, 640, "BongoBro: гардероб") { }
 
@@ -121,11 +122,38 @@ namespace BongoBro
             long xp = PetLevels.Xp(s, pet);
             int lvl = PetLevels.Level(xp);
             Color c = lvl >= 3 ? Ui.Gold : lvl == 2 ? Color.FromArgb(120, 200, 255) : Ui.Sub;
-            RectangleF tag = new RectangleF(r.X + 6, r.Y + 6, 46, 20);
+            string label = lvl + " · " + PetLevels.Name(lvl);
+            float tw = g.MeasureString(label, Ui.F(10.5f, true)).Width + 10;
+            RectangleF tag = new RectangleF(r.X + 6, r.Y + 6, tw, 20);
             Ui.FillRR(g, tag, 6, Art.A(200, Art.Mix(Ui.Bg, c, 0.3f)));
-            Ui.TextC(g, "Ур. " + lvl, Ui.F(11, true), c, tag);
-            Ui.Progress(g, new RectangleF(r.X + 10, r.Bottom - 46, r.Width - 20, 5), PetLevels.Progress(xp), c);
-            Ui.TextC(g, PetLevels.Name(lvl), Ui.F(10.5f, false), c, new RectangleF(r.X, r.Bottom - 64, r.Width, 16));
+            Ui.TextC(g, label, Ui.F(10.5f, true), c, tag);
+            XpPill(g, new RectangleF(r.X + 8, r.Bottom - 55, r.Width - 16, 15), xp, c);
+        }
+
+        // experience bar with "have / need" written inside, "Максимум" at the top stage
+        static void XpPill(Graphics g, RectangleF r, long xp, Color c)
+        {
+            float k = PetLevels.Progress(xp);
+            Ui.FillRR(g, r, r.Height / 2, Art.A(170, Ui.Bg));
+            if (k > 0)
+            {
+                RectangleF fill = new RectangleF(r.X, r.Y, Math.Max(r.Height, r.Width * k), r.Height);
+                Ui.FillRR(g, fill, r.Height / 2, Art.A(150, c));
+            }
+            string txt = PetLevels.Level(xp) >= 3 ? "Максимум" : Ui.Num(xp) + " / " + Ui.Num(xp + PetLevels.ToNext(xp));
+            Ui.TextC(g, txt, Ui.F(8.5f, true), Color.White, new RectangleF(r.X, r.Y, r.Width, r.Height + 1));
+        }
+
+        // compact version for the small set cards: level tag in the corner and a thin bar along the bottom
+        static void PetBadgeSmall(Graphics g, RectangleF r, SaveData s, string pet)
+        {
+            long xp = PetLevels.Xp(s, pet);
+            int lvl = PetLevels.Level(xp);
+            Color c = lvl >= 3 ? Ui.Gold : lvl == 2 ? Color.FromArgb(120, 200, 255) : Ui.Sub;
+            RectangleF tag = new RectangleF(r.Right - 50, r.Y + 8, 44, 18);
+            Ui.FillRR(g, tag, 6, Art.A(200, Art.Mix(Ui.Bg, c, 0.3f)));
+            Ui.TextC(g, "Ур. " + lvl, Ui.F(10.5f, true), c, tag);
+            XpPill(g, new RectangleF(r.X + 10, r.Y + 72, r.Width - 20, 14), xp, c);
         }
 
         void PaintSets(Graphics g, float t, SaveData s)
@@ -171,6 +199,7 @@ namespace BongoBro
                     bool eq = s.GetEquipped(it.Slot) == it.Id;
                     Ui.ItemCard(g, r, it, t + k * 0.4f, !owned, 0, Hover(r) && owned);
                     if (eq) Ui.TextC(g, "✓", Ui.F(18, true), Ui.Good, new RectangleF(r.X + 4, r.Y + 6, 24, 24));
+                    if (it.Slot == Slot.Pet && owned) PetBadgeSmall(g, r, s, it.Id);
                     if (owned) AddHit(r, () => { if (eq) Game.Unequip(it.Slot); else Game.Equip(it); });
                 }
             }
