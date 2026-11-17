@@ -9,12 +9,13 @@ namespace BongoBro
     public class ShopForm : CustomForm
     {
         // index into Items.Slots, or SetsTab for the gear sets page
-        const int SetsTab = -1;
+        const int SetsTab = -1, NewYearTab = -2;
         int tab = 0;
         bool personal;   // sets page: personal sets instead of the common ones
 
         public void ShowSetsTab() { tab = SetsTab; }
         public void ShowPersonalSets() { tab = SetsTab; personal = true; }
+        public void ShowNewYearTab() { tab = NewYearTab; }
 
         public ShopForm() : base(1160, 640, "BongoBro: гардероб") { }
 
@@ -51,10 +52,10 @@ namespace BongoBro
                 Ui.TextR(g, it != null ? it.Name : "—", Ui.F(13, true), it != null ? Items.RarityColor(it.Rarity) : Ui.Sub, new RectangleF(104, y, 162, 24));
                 y += 24;
             }
-            Ui.TextL(g, "Лутбоксов: " + (s.Boxes + s.GoldBoxes) + "   Открыто: " + s.Opened, Ui.F(13, false), Ui.Fg, 32, 474);
+            Ui.TextL(g, "Лутбоксов: " + Game.TotalBoxes + "   Открыто: " + s.Opened, Ui.F(13, false), Ui.Fg, 32, 474);
             long left = Game.BoxEvery - s.Keys % Game.BoxEvery;
             Ui.Progress(g, new RectangleF(32, 498, 230, 6), 1f - left / (float)Game.BoxEvery, Ui.Gold);
-            Button(g, new RectangleF(30, 514, 234, 44), s.Boxes + s.GoldBoxes > 0 ? "Открыть лутбоксы (" + (s.Boxes + s.GoldBoxes) + ")" : "Лутбоксы", Ui.Accent, true, true, () => Program.MainWin.OpenLoot());
+            Button(g, new RectangleF(30, 514, 234, 44), Game.TotalBoxes > 0 ? "Открыть лутбоксы (" + Game.TotalBoxes + ")" : "Лутбоксы", Ui.Accent, true, true, () => Program.MainWin.OpenLoot());
             bool anyEq = false;
             foreach (Slot sl in Items.Slots) if (s.GetEquipped(sl) != null) anyEq = true;
             Button(g, new RectangleF(30, 570, 234, 38), "Снять всё", Ui.Sub, false, anyEq, () =>
@@ -63,14 +64,20 @@ namespace BongoBro
                 Game.Save();
             });
 
-            // tabs: one per slot plus the gear sets
-            int tabs = Items.Slots.Length + 1;
+            // tabs: one per slot, the gear sets and the New Year collection
+            int tabs = Items.Slots.Length + 2;
             float tw = (856 - 8 * (tabs - 1)) / (float)tabs;
             for (int i = 0; i < tabs; i++)
             {
-                int idx = i < Items.Slots.Length ? i : SetsTab;
+                int idx = i < Items.Slots.Length ? i : i == Items.Slots.Length ? SetsTab : NewYearTab;
                 string label;
                 if (idx == SetsTab) label = "Сеты";
+                else if (idx == NewYearTab)
+                {
+                    int owned = 0;
+                    foreach (Item it in Items.NewYearItems()) if (s.Owned.Contains(it.Id)) owned++;
+                    label = "Новый год " + owned + "/" + Items.NewYearItems().Count;
+                }
                 else
                 {
                     List<Item> all = Items.OfSlotBase(Items.Slots[i]);
@@ -78,12 +85,17 @@ namespace BongoBro
                     foreach (Item it in all) if (s.Owned.Contains(it.Id)) owned++;
                     label = Items.SlotName(Items.Slots[i]) + " " + owned + "/" + all.Count;
                 }
-                Button(g, new RectangleF(292 + i * (tw + 8), 62, tw, 38), label, idx == SetsTab ? Ui.Gold : Ui.Accent, tab == idx, true, () => { tab = idx; });
+                Color tc = idx == SetsTab ? Ui.Gold : idx == NewYearTab ? Color.FromArgb(236, 64, 70) : Ui.Accent;
+                Button(g, new RectangleF(292 + i * (tw + 8), 62, tw, 38), label, tc, tab == idx, true, () => { tab = idx; });
             }
 
             if (tab == SetsTab) PaintSets(g, t, s);
+            else if (tab == NewYearTab) PaintGrid(g, t, s, Items.NewYearItems());
             else PaintGrid(g, t, s, Items.OfSlotBase(Items.Slots[tab]));
-            Ui.TextC(g, "Каждые 2000 нажатий клавиш = лутбокс  •  новые вещи выпадают без повторов, пока коллекция не собрана", Ui.F(12, false), Ui.Sub, new RectangleF(292, 600, 856, 24));
+            string foot = tab == NewYearTab
+                ? "Новогодние вещи выпадают только из новогодних лутбоксов " + NewYear.Period + (NewYear.Active ? "  •  событие идёт сейчас!" : "")
+                : "Каждые 2000 нажатий клавиш = лутбокс  •  новые вещи выпадают без повторов, пока коллекция не собрана";
+            Ui.TextC(g, foot, Ui.F(12, false), tab == NewYearTab ? Color.FromArgb(255, 160, 160) : Ui.Sub, new RectangleF(292, 600, 856, 24));
         }
 
         void PaintGrid(Graphics g, float t, SaveData s, List<Item> list)
@@ -98,8 +110,22 @@ namespace BongoBro
                 RectangleF b = new RectangleF(r.X + 8, r.Bottom - 36, r.Width - 16, 28);
                 if (eq) Button(g, b, "Надето ✓", Ui.Good, true, true, () => Game.Unequip(it.Slot));
                 else if (owned) Button(g, b, "Надеть", Ui.Accent, false, true, () => Game.Equip(it));
-                else Button(g, b, "Из лутбокса", Ui.Sub, false, false, null);
+                else Button(g, b, it.NewYear ? "Новогодний" : "Из лутбокса", Ui.Sub, false, false, null);
+                if (it.Slot == Slot.Pet && owned) PetBadge(g, r, s, it.Id);
             }
+        }
+
+        // pet level and experience towards the next one
+        static void PetBadge(Graphics g, RectangleF r, SaveData s, string pet)
+        {
+            long xp = PetLevels.Xp(s, pet);
+            int lvl = PetLevels.Level(xp);
+            Color c = lvl >= 3 ? Ui.Gold : lvl == 2 ? Color.FromArgb(120, 200, 255) : Ui.Sub;
+            RectangleF tag = new RectangleF(r.X + 6, r.Y + 6, 46, 20);
+            Ui.FillRR(g, tag, 6, Art.A(200, Art.Mix(Ui.Bg, c, 0.3f)));
+            Ui.TextC(g, "Ур. " + lvl, Ui.F(11, true), c, tag);
+            Ui.Progress(g, new RectangleF(r.X + 10, r.Bottom - 46, r.Width - 20, 5), PetLevels.Progress(xp), c);
+            Ui.TextC(g, PetLevels.Name(lvl), Ui.F(10.5f, false), c, new RectangleF(r.X, r.Bottom - 64, r.Width, 16));
         }
 
         void PaintSets(Graphics g, float t, SaveData s)

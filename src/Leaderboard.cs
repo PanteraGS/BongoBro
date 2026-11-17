@@ -22,6 +22,7 @@ namespace BongoBro
         {
             public int Rank;
             public string Name, Char;
+            public string Hat, Glasses, Face;   // visible outfit for the avatar
             public long Keys;
             public bool Me;
         }
@@ -35,6 +36,12 @@ namespace BongoBro
         }
 
         public static long LastSubmittedKeys = -1;
+
+        // what is visible on a leaderboard avatar: "hat,glasses,face" item ids
+        static string Outfit(SaveData s)
+        {
+            return (s.Hat ?? "") + "," + (s.Glasses ?? "") + "," + (s.Face ?? "");
+        }
 
         public static void EnsureIdentity(SaveData s)
         {
@@ -75,6 +82,7 @@ namespace BongoBro
             body["name"] = name;
             body["keys"] = s.Keys;
             body["char"] = s.Character;
+            body["outfit"] = Outfit(s);
             string payload = new JavaScriptSerializer().Serialize(body);
             long keys = s.Keys;
             ThreadPool.QueueUserWorkItem(delegate
@@ -160,7 +168,19 @@ namespace BongoBro
             e.Char = Convert.ToString(o["char"]);
             e.Keys = Convert.ToInt64(o["keys"]);
             e.Me = Convert.ToBoolean(o["me"]);
+            // only items that exist in this version are drawn; unknown ids are skipped
+            object of;
+            string[] parts = o.TryGetValue("outfit", out of) && of != null ? Convert.ToString(of).Split(',') : new string[0];
+            e.Hat = parts.Length > 0 ? Known(parts[0], Slot.Hat) : null;
+            e.Glasses = parts.Length > 1 ? Known(parts[1], Slot.Glasses) : null;
+            e.Face = parts.Length > 2 ? Known(parts[2], Slot.Face) : null;
             return e;
+        }
+
+        static string Known(string id, Slot slot)
+        {
+            Item it = Items.Get(id);
+            return it != null && it.Slot == slot ? id : null;
         }
 
         static DateTime FromUnixMs(object v)

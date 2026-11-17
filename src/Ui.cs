@@ -199,6 +199,22 @@ namespace BongoBro
                             g.DrawLines(p, new PointF[] { new PointF(13, 5), new PointF(17.5f, 10), new PointF(13, 15) });
                             using (Pen sl = Art.P(Bad, 1.7f)) g.DrawLine(sl, 11.5f, 3.5f, 8.5f, 16.5f);
                             break;
+                        case "quest":
+                            using (GraphicsPath sh = Art.RR(new RectangleF(3.5f, 2.5f, 13, 15.5f), 2))
+                            using (SolidBrush br = new SolidBrush(Color.FromArgb(120, 200, 255))) g.FillPath(br, sh);
+                            using (Pen ck = Art.P(Color.FromArgb(20, 60, 110), 1.6f))
+                            {
+                                g.DrawLines(ck, new PointF[] { new PointF(6, 7), new PointF(7.5f, 8.5f), new PointF(10, 5.5f) });
+                                g.DrawLine(ck, 11.5f, 7, 14, 7);
+                                g.DrawLines(ck, new PointF[] { new PointF(6, 13), new PointF(7.5f, 14.5f), new PointF(10, 11.5f) });
+                                g.DrawLine(ck, 11.5f, 13, 14, 13);
+                            }
+                            break;
+                        case "chart":
+                            using (SolidBrush b1 = new SolidBrush(Accent)) g.FillRectangle(b1, 2.5f, 10, 4, 7.5f);
+                            using (SolidBrush b2 = new SolidBrush(Color.FromArgb(160, 140, 255))) g.FillRectangle(b2, 8, 5, 4, 12.5f);
+                            using (SolidBrush b3 = new SolidBrush(Gold)) g.FillRectangle(b3, 13.5f, 2.5f, 4, 15);
+                            break;
                         case "podium":
                             using (SolidBrush b1 = new SolidBrush(Gold)) g.FillRectangle(b1, 7.5f, 4, 5, 13.5f);
                             using (SolidBrush b2 = new SolidBrush(Color.FromArgb(200, 208, 222))) g.FillRectangle(b2, 2, 8, 5, 9.5f);

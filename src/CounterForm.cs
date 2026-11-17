@@ -81,7 +81,7 @@ namespace BongoBro
         {
             int now = Environment.TickCount;
             bool fx = now - boxFxUntil < 0;
-            string sig = string.Concat(new object[] { Game.S.ShowCounter, Game.S.Keys, Game.S.Boxes, Game.S.GoldBoxes, Game.S.Theme, scale });
+            string sig = string.Concat(new object[] { Game.S.ShowCounter, Game.S.Keys, Game.TotalBoxes, Game.S.GoldBoxes, Game.S.NyBoxes, Game.S.Theme, scale });
             if (fx || themeAnimated || sig != lastSig)
             {
                 lastSig = sig;
@@ -115,11 +115,11 @@ namespace BongoBro
                     Art.DrawCounter(g, PillRect, Art.GetTheme(Game.S.Theme), Ui.Num(Game.S.Keys), k, t);
                 }
                 bool fx = now - boxFxUntil < 0;
-                int total = Game.S.Boxes + Game.S.GoldBoxes;
+                int total = Game.TotalBoxes;
                 if (total > 0)
                 {
                     float bounce = fx ? Math.Abs(Art.Sin(t * 9)) * 7 : 0;
-                    Art.DrawLootBox(g, 186, 62 - bounce, 40, t, fx, Game.S.GoldBoxes > 0);
+                    Art.DrawLootBox(g, 186, 62 - bounce, 40, t, fx, Game.S.NyBoxes > 0 ? BoxKind.NewYear : Game.S.GoldBoxes > 0 ? BoxKind.Gold : BoxKind.Normal);
                     using (SolidBrush b = new SolidBrush(Ui.Bad)) g.FillEllipse(b, 198, 32, 19, 19);
                     using (Pen pen = new Pen(Color.White, 1.6f)) g.DrawEllipse(pen, 198, 32, 19, 19);
                     Ui.TextC(g, total > 99 ? "99" : total.ToString(), Ui.F(11, true), Color.White, new RectangleF(197, 32, 21, 19));
@@ -146,7 +146,7 @@ namespace BongoBro
             base.OnMouseDown(e);
             if (e.Button != MouseButtons.Left) return;
             PointF p = new PointF(e.X / scale, e.Y / scale);
-            if (Game.S.Boxes + Game.S.GoldBoxes > 0 && GiftRect.Contains(p)) { owner.OpenLoot(); return; }
+            if (Game.TotalBoxes > 0 && GiftRect.Contains(p)) { owner.OpenLoot(); return; }
             Native.DragWindow(this);
         }
 

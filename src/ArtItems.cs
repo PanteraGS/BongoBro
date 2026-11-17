@@ -32,6 +32,7 @@ namespace BongoBro
                 case "set_sausage_gloves": SausageGloves(g, tx); return true;
                 case "set_melon_gloves": MelonGloves(g, tx); return true;
                 case "set_beer_gloves": BeerGloves(g, tx); return true;
+                case "ny_mittens": Mittens(g, tx); return true;
             }
             return false;
         }
@@ -319,6 +320,7 @@ namespace BongoBro
                 case "gl_galaxy": GlGalaxy(g, t); break;
                 case "set_pirate_patch": PirateEyepatch(g); break;
                 case "set_melon_glasses": MelonGlasses(g); break;
+                case "ny_snowflake": SnowflakeGlasses(g); break;
             }
         }
 
@@ -677,6 +679,9 @@ namespace BongoBro
                 case "set_sausage_hat": SausageHat(g); break;
                 case "set_melon_hat": MelonHat(g); break;
                 case "set_beer_hat": BeerHat(g, t); break;
+                case "ny_santa": SantaHat(g); break;
+                case "ny_antlers": Antlers(g); break;
+                case "ny_tree": TreeHat(g, t); break;
             }
         }
 

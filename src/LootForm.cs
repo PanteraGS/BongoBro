@@ -16,7 +16,19 @@ namespace BongoBro
         St st = St.Idle;
         readonly List<Item> strip = new List<Item>();
         Item result;
-        bool resultNew, rollGold;
+        bool resultNew;
+        BoxKind rollKind;
+        bool rollGold { get { return rollKind == BoxKind.Gold; } }
+
+        static int Count(BoxKind k)
+        {
+            return k == BoxKind.Gold ? Game.S.GoldBoxes : k == BoxKind.NewYear ? Game.S.NyBoxes : Game.S.Boxes;
+        }
+
+        static Color KindColor(BoxKind k)
+        {
+            return k == BoxKind.Gold ? Ui.Gold : k == BoxKind.NewYear ? Color.FromArgb(236, 64, 70) : Ui.Accent;
+        }
         int rollStart, shownAt;
         float target;
 
@@ -25,7 +37,7 @@ namespace BongoBro
         protected override void PaintUi(Graphics g, float t)
         {
             int now = Environment.TickCount;
-            Art.Glow(g, 360, 250, 340, 200, rollGold && st != St.Idle ? Ui.Gold : Ui.Accent, 34);
+            Art.Glow(g, 360, 250, 340, 200, st != St.Idle ? KindColor(rollKind) : Ui.Accent, 34);
             TitleBar(g, "ЛУТБОКСЫ");
             if (st == St.Idle) Idle(g, t);
             else if (st == St.Rolling) Rolling(g, t, now);
@@ -34,15 +46,24 @@ namespace BongoBro
 
         void Idle(Graphics g, float t)
         {
-            int boxes = Game.S.Boxes, gold = Game.S.GoldBoxes;
+            int boxes = Game.S.Boxes, gold = Game.S.GoldBoxes, ny = Game.S.NyBoxes;
             long left = Game.BoxEvery - Game.S.Keys % Game.BoxEvery;
-            if (gold > 0)
+            if (gold > 0 || ny > 0)
             {
-                // two boxes side by side
-                BoxColumn(g, t, 200, "Обычных: " + boxes, boxes, false, () => StartRoll(false));
-                BoxColumn(g, t, 520, "Золотых: " + gold, gold, true, () => StartRoll(true));
-                Ui.TextC(g, "Золотой лутбокс: только IMMORTAL", Ui.F(13, true), Ui.Gold, new RectangleF(360, 418, 320, 22));
-                Ui.TextC(g, "До следующего: " + Ui.Num(left) + " нажатий", Ui.F(13, false), Ui.Sub, new RectangleF(40, 418, 320, 22));
+                // several kinds side by side
+                List<BoxKind> kinds = new List<BoxKind> { BoxKind.Normal };
+                if (gold > 0) kinds.Add(BoxKind.Gold);
+                if (ny > 0) kinds.Add(BoxKind.NewYear);
+                float span = W / (float)kinds.Count;
+                for (int i = 0; i < kinds.Count; i++)
+                {
+                    BoxKind k = kinds[i];
+                    string label = k == BoxKind.Gold ? "Золотых: " + gold : k == BoxKind.NewYear ? "Новогодних: " + ny : "Обычных: " + boxes;
+                    BoxColumn(g, t, span * (i + 0.5f), label, Count(k), k, () => StartRoll(k), kinds.Count > 2 ? 110 : 130);
+                }
+                string note = ny > 0 ? "Новогодний: вещи, которые выпадают только " + NewYear.Period : "Золотой лутбокс: только IMMORTAL";
+                Ui.TextC(g, note, Ui.F(13, true), ny > 0 ? Color.FromArgb(255, 150, 150) : Ui.Gold, new RectangleF(0, 404, W, 22));
+                Ui.TextC(g, "До следующего: " + Ui.Num(left) + " нажатий", Ui.F(13, false), Ui.Sub, new RectangleF(0, 430, W, 22));
                 return;
             }
             float bob = boxes > 0 ? Art.Sin(t * 2.6f) * 6 : 0;
@@ -50,7 +71,7 @@ namespace BongoBro
             Ui.TextC(g, boxes > 0 ? "Доступно лутбоксов: " + boxes : "Лутбоксов пока нет", Ui.F(22, true), Ui.Fg, new RectangleF(0, 280, W, 34));
             Ui.TextC(g, "До следующего лутбокса: " + Ui.Num(left) + " нажатий", Ui.F(14, false), Ui.Sub, new RectangleF(0, 314, W, 22));
             Ui.Progress(g, new RectangleF(210, 342, 300, 8), 1f - left / (float)Game.BoxEvery, Ui.Gold);
-            Button(g, new RectangleF(250, 366, 220, 50), "ОТКРЫТЬ", Ui.Accent, true, boxes > 0, () => StartRoll(false));
+            Button(g, new RectangleF(250, 366, 220, 50), "ОТКРЫТЬ", Ui.Accent, true, boxes > 0, () => StartRoll(BoxKind.Normal));
             for (int i = 0; i < 4; i++)
             {
                 Rarity r = (Rarity)i;
@@ -61,29 +82,34 @@ namespace BongoBro
             }
         }
 
-        void BoxColumn(Graphics g, float t, float cx, string label, int count, bool gold, Action open)
+        void BoxColumn(Graphics g, float t, float cx, string label, int count, BoxKind kind, Action open, float size)
         {
-            float bob = count > 0 ? Art.Sin(t * 2.6f + (gold ? 1.5f : 0)) * 6 : 0;
-            Art.DrawLootBox(g, cx, 190 + bob, 130, t, count > 0, gold);
-            Ui.TextC(g, label, Ui.F(20, true), gold ? Ui.Gold : Ui.Fg, new RectangleF(cx - 150, 284, 300, 32));
-            Button(g, new RectangleF(cx - 100, 340, 200, 50), gold ? "ОТКРЫТЬ ЗОЛОТОЙ" : "ОТКРЫТЬ", gold ? Ui.Gold : Ui.Accent, true, count > 0, open);
+            float bob = count > 0 ? Art.Sin(t * 2.6f + (int)kind * 1.5f) * 6 : 0;
+            Art.DrawLootBox(g, cx, 190 + bob, size, t, count > 0, kind);
+            Color c = KindColor(kind);
+            Ui.TextC(g, label, Ui.F(19, true), kind == BoxKind.Normal ? Ui.Fg : c, new RectangleF(cx - 120, 284, 240, 32));
+            string btn = kind == BoxKind.Gold ? "ОТКРЫТЬ ЗОЛОТОЙ" : kind == BoxKind.NewYear ? "ОТКРЫТЬ НОВОГОДНИЙ" : "ОТКРЫТЬ";
+            Button(g, new RectangleF(cx - 105, 336, 210, 50), btn, c, true, count > 0, open);
         }
 
-        void StartRoll(bool gold)
+        void StartRoll(BoxKind kind)
         {
-            if (st == St.Rolling) return;
-            if (gold ? Game.S.GoldBoxes <= 0 : Game.S.Boxes <= 0) return;
-            rollGold = gold;
-            result = gold ? Game.OpenGoldBox(out resultNew) : Game.OpenBox(out resultNew);
+            if (st == St.Rolling || Count(kind) <= 0) return;
+            rollKind = kind;
+            result = kind == BoxKind.Gold ? Game.OpenGoldBox(out resultNew)
+                : kind == BoxKind.NewYear ? Game.OpenNewYearBox(out resultNew) : Game.OpenBox(out resultNew);
             strip.Clear();
             List<Item> imm = Items.OfRarity(Rarity.Immortal);
+            List<Item> nyItems = Items.NewYearItems();
             for (int i = 0; i < WinIndex + 6; i++)
             {
                 if (i == WinIndex) strip.Add(result);
-                else strip.Add(gold ? imm[Game.Rnd.Next(imm.Count)] : Items.Roll(Game.Rnd));
+                else if (kind == BoxKind.Gold) strip.Add(imm[Game.Rnd.Next(imm.Count)]);
+                else if (kind == BoxKind.NewYear) strip.Add(nyItems[Game.Rnd.Next(nyItems.Count)]);
+                else strip.Add(Items.Roll(Game.Rnd));
             }
             // tease: a shiny immortal right next to the winner
-            if (!gold && result.Rarity != Rarity.Immortal && Game.Rnd.Next(3) == 0)
+            if (kind == BoxKind.Normal && result.Rarity != Rarity.Immortal && Game.Rnd.Next(3) == 0)
                 strip[WinIndex + (Game.Rnd.Next(2) == 0 ? 1 : -1)] = imm[Game.Rnd.Next(imm.Count)];
             float jitter = (float)(Game.Rnd.NextDouble() * 2 - 1) * 48;
             target = (WinIndex - 3) * Stride + jitter;
@@ -116,7 +142,8 @@ namespace BongoBro
                 g.FillPolygon(b, new PointF[] { new PointF(349, 320), new PointF(371, 320), new PointF(360, 306) });
             }
             string dots = new string('.', 1 + (int)(t * 3) % 3);
-            Ui.TextC(g, (rollGold ? "Открываем золотой" : "Открываем") + dots, Ui.F(20, true), rollGold ? Ui.Gold : Ui.Fg, new RectangleF(0, 340, W, 34));
+            string what = rollGold ? "Открываем золотой" : rollKind == BoxKind.NewYear ? "Открываем новогодний" : "Открываем";
+            Ui.TextC(g, what + dots, Ui.F(20, true), rollKind == BoxKind.Normal ? Ui.Fg : KindColor(rollKind), new RectangleF(0, 340, W, 34));
             Ui.TextC(g, rollGold ? "Только IMMORTAL" : "Common 62%  •  Rare 26%  •  Legendary 10%  •  Immortal 2%", Ui.F(13, false), Ui.Sub, new RectangleF(0, 380, W, 24));
             if (now - rollStart > RollMs + 350)
             {
@@ -165,9 +192,10 @@ namespace BongoBro
             if (k < 1) return;
             bool equipped = Game.S.GetEquipped(result.Slot) == result.Id;
             Item it = result;
-            bool more = rollGold ? Game.S.GoldBoxes > 0 : Game.S.Boxes > 0;
+            int left = Count(rollKind);
+            BoxKind kind = rollKind;
             Button(g, new RectangleF(140, 414, 140, 44), equipped ? "Надето ✓" : "Надеть", Ui.Good, true, !equipped, () => Game.Equip(it));
-            Button(g, new RectangleF(290, 414, 140, 44), "Ещё (" + (rollGold ? Game.S.GoldBoxes : Game.S.Boxes) + ")", rollGold ? Ui.Gold : Ui.Accent, true, more, () => StartRoll(rollGold));
+            Button(g, new RectangleF(290, 414, 140, 44), "Ещё (" + left + ")", KindColor(rollKind), true, left > 0, () => StartRoll(kind));
             Button(g, new RectangleF(440, 414, 140, 44), "Готово", Ui.Sub, false, true, () => { st = St.Idle; });
         }
     }

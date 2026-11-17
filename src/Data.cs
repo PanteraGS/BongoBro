@@ -19,6 +19,7 @@ namespace BongoBro
         public Slot Slot;
         public Rarity Rarity;
         public string Set;   // id of the gear set this item belongs to, or null
+        public bool NewYear; // drops only from New Year boxes
         public Item(string id, string name, Slot slot, Rarity rarity) { Id = id; Name = name; Slot = slot; Rarity = rarity; }
     }
 
@@ -87,6 +88,49 @@ namespace BongoBro
             SetPiece("set_beer", Rarity.Rare, Slot.Face, "set_beer_face", "Пенные усы");
             SetPiece("set_beer", Rarity.Rare, Slot.Gloves, "set_beer_gloves", "Пенные перчатки");
             SetPiece("set_beer", Rarity.Rare, Slot.Pet, "set_beer_hop", "Хмелёк");
+
+            // New Year collection: only from New Year boxes, which drop from 15 December to 15 January
+            NewYearItem(Rarity.Common, Slot.Hat, "ny_santa", "Шапка Деда Мороза");
+            NewYearItem(Rarity.Common, Slot.Gloves, "ny_mittens", "Варежки со снежинками");
+            NewYearItem(Rarity.Common, Slot.Face, "ny_frost", "Морозный румянец");
+            NewYearItem(Rarity.Rare, Slot.Hat, "ny_antlers", "Оленьи рога");
+            NewYearItem(Rarity.Rare, Slot.Glasses, "ny_snowflake", "Очки-снежинки");
+            NewYearItem(Rarity.Rare, Slot.Face, "ny_scarf", "Новогодний шарф");
+            NewYearItem(Rarity.Legendary, Slot.Theme, "ny_style", "Ёлочные игрушки");
+            NewYearItem(Rarity.Legendary, Slot.Pet, "ny_snowman", "Снеговик");
+            NewYearItem(Rarity.Immortal, Slot.Hat, "ny_tree", "Ёлка с гирляндой");
+        }
+
+        static void NewYearItem(Rarity r, Slot s, string id, string name)
+        {
+            Item it = new Item(id, name, s, r);
+            it.NewYear = true;
+            All.Add(it);
+        }
+
+        public static List<Item> NewYearItems()
+        {
+            List<Item> l = new List<Item>();
+            foreach (Item it in All) if (it.NewYear) l.Add(it);
+            return l;
+        }
+
+        // New Year box: a New Year item by the usual rarity odds, unowned ones first;
+        // once the whole collection is owned it gives an ordinary item instead
+        public static Item RollNewYear(Random rnd, HashSet<string> owned)
+        {
+            int r0 = (int)RollRarity(rnd);
+            List<int> order = new List<int>();
+            order.Add(r0);
+            for (int r = r0 - 1; r >= 0; r--) order.Add(r);
+            for (int r = r0 + 1; r <= 3; r++) order.Add(r);
+            foreach (int r in order)
+            {
+                List<Item> pool = new List<Item>();
+                foreach (Item it in NewYearItems()) if ((int)it.Rarity == r && !owned.Contains(it.Id)) pool.Add(it);
+                if (pool.Count > 0) return pool[rnd.Next(pool.Count)];
+            }
+            return RollNew(rnd, owned);
         }
 
         static void SetPiece(string set, Rarity r, Slot s, string id, string name)
@@ -96,11 +140,11 @@ namespace BongoBro
             All.Add(it);
         }
 
-        // items shown in a slot tab of the wardrobe (set pieces live in the "Сеты" tab)
+        // items shown in a slot tab of the wardrobe (set pieces and New Year items have their own tabs)
         public static List<Item> OfSlotBase(Slot s)
         {
             List<Item> l = new List<Item>();
-            foreach (Item it in All) if (it.Slot == s && it.Set == null) l.Add(it);
+            foreach (Item it in All) if (it.Slot == s && it.Set == null && !it.NewYear) l.Add(it);
             return l;
         }
 
@@ -125,10 +169,11 @@ namespace BongoBro
             return l;
         }
 
+        // the regular loot pool (New Year items are left out)
         public static List<Item> OfRarity(Rarity r)
         {
             List<Item> l = new List<Item>();
-            foreach (Item it in All) if (it.Rarity == r) l.Add(it);
+            foreach (Item it in All) if (it.Rarity == r && !it.NewYear) l.Add(it);
             return l;
         }
 
@@ -229,6 +274,12 @@ namespace BongoBro
             return id == Vlad ? "Влад" : id == Stas ? "Стасян" : "Юра";
         }
 
+        // accusative: "за Юру"
+        public static string NameWhom(string id)
+        {
+            return id == Vlad ? "Влада" : id == Stas ? "Стасяна" : "Юру";
+        }
+
         // genitive: "только у Юры"
         public static string NameWho(string id)
         {
@@ -269,6 +320,16 @@ namespace BongoBro
         // achievement counters: night keys, immortals from regular boxes, best leaderboard place, keys per character
         public long NightKeys, KeysYura, KeysVlad, KeysStas;
         public int LuckyImm, BestRank;
+        // New Year boxes and how many boxes were earned during the event (every 5th is a New Year one)
+        public int NyBoxes, NyCount;
+        // daily quests: the day they belong to, today's counters and the bitmask of quests already rewarded
+        public string QDay;
+        public long QKeys, QClicks, QCharKeys;
+        public int QKpm, QOpened, QDone;
+        // pet experience per pet id, keys per day (yyyy-MM-dd) and presses per virtual-key code
+        public Dictionary<string, long> PetXp = new Dictionary<string, long>();
+        public Dictionary<string, long> History = new Dictionary<string, long>();
+        public Dictionary<int, long> KeyCounts = new Dictionary<int, long>();
         public string LastDay;
         public string Hat, Glasses, Gloves, Face, Theme, Pet;
         public int X = int.MinValue, Y = int.MinValue;
@@ -354,23 +415,114 @@ namespace BongoBro
                 sb.Append("kyura=").Append(KeysYura.ToString(ci)).Append('\n');
                 sb.Append("kvlad=").Append(KeysVlad.ToString(ci)).Append('\n');
                 sb.Append("kstas=").Append(KeysStas.ToString(ci)).Append('\n');
+                sb.Append("nybox=").Append(NyBoxes.ToString(ci)).Append('\n');
+                sb.Append("nycount=").Append(NyCount.ToString(ci)).Append('\n');
+                sb.Append("qday=").Append(QDay ?? "").Append('\n');
+                sb.Append("qkeys=").Append(QKeys.ToString(ci)).Append('\n');
+                sb.Append("qclicks=").Append(QClicks.ToString(ci)).Append('\n');
+                sb.Append("qchar=").Append(QCharKeys.ToString(ci)).Append('\n');
+                sb.Append("qkpm=").Append(QKpm.ToString(ci)).Append('\n');
+                sb.Append("qopen=").Append(QOpened.ToString(ci)).Append('\n');
+                sb.Append("qdone=").Append(QDone.ToString(ci)).Append('\n');
+                sb.Append("petxp=").Append(JoinMap(PetXp)).Append('\n');
+                // only the last 60 days of history are kept
+                Dictionary<string, long> hist = new Dictionary<string, long>();
+                string oldest = DateTime.Today.AddDays(-60).ToString("yyyy-MM-dd", ci);
+                foreach (KeyValuePair<string, long> kv in History) if (string.CompareOrdinal(kv.Key, oldest) >= 0) hist[kv.Key] = kv.Value;
+                sb.Append("hist=").Append(JoinMap(hist)).Append('\n');
+                Dictionary<string, long> vk = new Dictionary<string, long>();
+                foreach (KeyValuePair<int, long> kv in KeyCounts) vk[kv.Key.ToString(ci)] = kv.Value;
+                sb.Append("vk=").Append(JoinMap(vk)).Append('\n');
+                // write to disk for real before swapping files, so a power cut cannot leave an empty save
                 string tmp = FilePath + ".tmp";
-                File.WriteAllText(tmp, sb.ToString(), Encoding.UTF8);
-                if (File.Exists(FilePath))
+                byte[] bytes = Encoding.UTF8.GetBytes(sb.ToString());
+                using (FileStream fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.WriteThrough))
                 {
-                    File.Copy(FilePath, FilePath + ".bak", true);
-                    File.Delete(FilePath);
+                    fs.Write(bytes, 0, bytes.Length);
+                    fs.Flush(true);
                 }
-                File.Move(tmp, FilePath);
+                if (File.Exists(FilePath)) File.Replace(tmp, FilePath, FilePath + ".bak", true);
+                else File.Move(tmp, FilePath);
+                DailyBackup();
             }
             catch { }
         }
 
+        public static string BackupDir { get { return Path.Combine(Dir, "backups"); } }
+
+        // one copy per day in backups\, the last 14 days are kept
+        void DailyBackup()
+        {
+            if (Keys <= 0) return;
+            Directory.CreateDirectory(BackupDir);
+            string today = Path.Combine(BackupDir, "save-" + DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + ".dat");
+            // during the day keep refreshing today's copy, but never replace it with a smaller save
+            SaveData existing = File.Exists(today) ? TryLoad(today) : null;
+            if (existing == null || existing.Keys <= Keys) File.Copy(FilePath, today, true);
+            string[] all = Directory.GetFiles(BackupDir, "save-*.dat");
+            Array.Sort(all, StringComparer.Ordinal);
+            for (int i = 0; i < all.Length - 14; i++) File.Delete(all[i]);
+        }
+
+        // "key:value,key:value" maps in the save file
+        static string JoinMap(Dictionary<string, long> m)
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (KeyValuePair<string, long> kv in m)
+            {
+                if (sb.Length > 0) sb.Append(',');
+                sb.Append(kv.Key).Append(':').Append(kv.Value.ToString(CultureInfo.InvariantCulture));
+            }
+            return sb.ToString();
+        }
+
+        static Dictionary<string, long> SplitMap(string v)
+        {
+            Dictionary<string, long> m = new Dictionary<string, long>();
+            foreach (string part in v.Split(','))
+            {
+                int i = part.LastIndexOf(':');
+                long n;
+                if (i > 0 && long.TryParse(part.Substring(i + 1), NumberStyles.Integer, CultureInfo.InvariantCulture, out n)) m[part.Substring(0, i).Trim()] = n;
+            }
+            return m;
+        }
+
+        // Falls back to save.dat.bak and then to the newest daily backup. A save that could not be read
+        // is copied aside first, so starting over never destroys it.
         public static SaveData Load()
         {
             SaveData d = TryLoad(FilePath);
-            if (d == null) d = TryLoad(FilePath + ".bak");
-            return d ?? new SaveData();
+            if (d != null) return d;
+            KeepBroken(FilePath);
+            d = TryLoad(FilePath + ".bak");
+            if (d != null) return d;
+            KeepBroken(FilePath + ".bak");
+            try
+            {
+                if (Directory.Exists(BackupDir))
+                {
+                    string[] all = Directory.GetFiles(BackupDir, "save-*.dat");
+                    Array.Sort(all, StringComparer.Ordinal);
+                    for (int i = all.Length - 1; i >= 0; i--)
+                    {
+                        d = TryLoad(all[i]);
+                        if (d != null) return d;
+                    }
+                }
+            }
+            catch { }
+            return new SaveData();
+        }
+
+        static void KeepBroken(string path)
+        {
+            try
+            {
+                if (File.Exists(path) && new FileInfo(path).Length > 0)
+                    File.Copy(path, path + ".broken-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture), true);
+            }
+            catch { }
         }
 
         static SaveData TryLoad(string path)
@@ -380,6 +532,7 @@ namespace BongoBro
                 if (!File.Exists(path)) return null;
                 CultureInfo ci = CultureInfo.InvariantCulture;
                 SaveData d = new SaveData();
+                bool valid = false;
                 foreach (string raw in File.ReadAllLines(path, Encoding.UTF8))
                 {
                     int i = raw.IndexOf('=');
@@ -388,7 +541,7 @@ namespace BongoBro
                     string id = v.Length > 0 ? v : null;
                     switch (k)
                     {
-                        case "keys": long.TryParse(v, NumberStyles.Integer, ci, out d.Keys); break;
+                        case "keys": valid = long.TryParse(v, NumberStyles.Integer, ci, out d.Keys); break;
                         case "clicks": long.TryParse(v, NumberStyles.Integer, ci, out d.Clicks); break;
                         case "boxes": int.TryParse(v, NumberStyles.Integer, ci, out d.Boxes); break;
                         case "opened": int.TryParse(v, NumberStyles.Integer, ci, out d.Opened); break;
@@ -431,8 +584,28 @@ namespace BongoBro
                         case "kyura": long.TryParse(v, NumberStyles.Integer, ci, out d.KeysYura); break;
                         case "kvlad": long.TryParse(v, NumberStyles.Integer, ci, out d.KeysVlad); break;
                         case "kstas": long.TryParse(v, NumberStyles.Integer, ci, out d.KeysStas); break;
+                        case "nybox": int.TryParse(v, NumberStyles.Integer, ci, out d.NyBoxes); break;
+                        case "nycount": int.TryParse(v, NumberStyles.Integer, ci, out d.NyCount); break;
+                        case "qday": d.QDay = id; break;
+                        case "qkeys": long.TryParse(v, NumberStyles.Integer, ci, out d.QKeys); break;
+                        case "qclicks": long.TryParse(v, NumberStyles.Integer, ci, out d.QClicks); break;
+                        case "qchar": long.TryParse(v, NumberStyles.Integer, ci, out d.QCharKeys); break;
+                        case "qkpm": int.TryParse(v, NumberStyles.Integer, ci, out d.QKpm); break;
+                        case "qopen": int.TryParse(v, NumberStyles.Integer, ci, out d.QOpened); break;
+                        case "qdone": int.TryParse(v, NumberStyles.Integer, ci, out d.QDone); break;
+                        case "petxp": d.PetXp = SplitMap(v); break;
+                        case "hist": d.History = SplitMap(v); break;
+                        case "vk":
+                            foreach (KeyValuePair<string, long> kv in SplitMap(v))
+                            {
+                                int code;
+                                if (int.TryParse(kv.Key, NumberStyles.Integer, ci, out code)) d.KeyCounts[code] = kv.Value;
+                            }
+                            break;
                     }
                 }
+                // an empty or zero-filled file (e.g. after a power cut) is not a save
+                if (!valid) return null;
                 if (d.Scale < 0.15f || d.Scale > 2f) d.Scale = 0.8f;
                 if (d.CounterScale < 0.3f || d.CounterScale > 2.5f) d.CounterScale = 1f;
                 return d;
@@ -499,28 +672,44 @@ namespace BongoBro
             DevMode = false;
             DevMood = null;
             DevDay = null;
+            NewYear.DevOverride = null;
             Load();
         }
 
         // Raised for every achievement unlocked (its reward is already granted).
         public static event Action<Achievement> Unlocked;
 
+        public static int TotalBoxes { get { return S.Boxes + S.GoldBoxes + S.NyBoxes; } }
+
+        // true when the last box earned by key presses was a New Year one
+        public static bool LastBoxNewYear;
+
         // returns true when a new loot box was earned
-        public static bool AddKey()
+        public static bool AddKey(int vk)
         {
             S.Keys++;
             if (S.Character == Characters.Vlad) S.KeysVlad++;
             else if (S.Character == Characters.Stas) S.KeysStas++;
             else S.KeysYura++;
             if (DateTime.Now.Hour < 5) S.NightKeys++;
+            Stats.CountKey(S, vk);
+            PetLevels.AddXp(S);
+            Quests.OnKey(S);
             Dirty = true;
             bool box = false;
-            if (S.Keys % BoxEvery == 0) { S.Boxes++; Save(); box = true; }
+            if (S.Keys % BoxEvery == 0)
+            {
+                // during the New Year event every 5th box is a New Year one
+                LastBoxNewYear = NewYear.Active && ++S.NyCount % 5 == 0;
+                if (LastBoxNewYear) S.NyBoxes++; else S.Boxes++;
+                Save();
+                box = true;
+            }
             CheckAchievements();
             return box;
         }
 
-        public static void AddClick() { S.Clicks++; Dirty = true; CheckAchievements(); }
+        public static void AddClick() { S.Clicks++; Quests.OnClick(S); Dirty = true; CheckAchievements(); }
 
         // the top-3 achievement counts only once the table has enough players
         public const int TopMinPlayers = 5;
@@ -535,6 +724,7 @@ namespace BongoBro
 
         public static void ReportKpm(int kpm)
         {
+            Quests.OnKpm(S, kpm);
             if (kpm <= S.BestKpm) return;
             S.BestKpm = kpm;
             Dirty = true;
@@ -550,6 +740,7 @@ namespace BongoBro
             string yesterday = today.AddDays(-1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             S.Streak = S.LastDay == yesterday ? S.Streak + 1 : 1;
             S.LastDay = key;
+            Quests.Refresh(S);
             Save();
             CheckAchievements();
         }
@@ -573,6 +764,7 @@ namespace BongoBro
             Item it = Items.RollNew(Rnd, S.Owned);
             isNew = S.Owned.Add(it.Id);
             if (it.Rarity == Rarity.Immortal) S.LuckyImm++;
+            Quests.OnBoxOpened(S);
             Save();
             CheckAchievements();
             return it;
@@ -588,6 +780,19 @@ namespace BongoBro
             List<Item> pool = fresh.Count > 0 ? fresh : imm;
             Item it = pool[Rnd.Next(pool.Count)];
             isNew = S.Owned.Add(it.Id);
+            Quests.OnBoxOpened(S);
+            Save();
+            CheckAchievements();
+            return it;
+        }
+
+        public static Item OpenNewYearBox(out bool isNew)
+        {
+            S.NyBoxes--;
+            S.Opened++;
+            Item it = Items.RollNewYear(Rnd, S.Owned);
+            isNew = S.Owned.Add(it.Id);
+            Quests.OnBoxOpened(S);
             Save();
             CheckAchievements();
             return it;

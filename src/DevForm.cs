@@ -53,7 +53,7 @@ namespace BongoBro
     {
         readonly MainForm owner;
 
-        public DevForm(MainForm owner) : base(700, 690, "BongoBro: режим разработчика")
+        public DevForm(MainForm owner) : base(760, 770, "BongoBro: режим разработчика")
         {
             this.owner = owner;
         }
@@ -87,7 +87,7 @@ namespace BongoBro
             y = 92;
             SaveData s = Game.S;
 
-            Section(g, "Ресурсы   (лутбоксов " + s.Boxes + ", золотых " + s.GoldBoxes + ", нажатий " + Ui.Num(s.Keys) + ")");
+            Section(g, "Ресурсы   (лутбоксов " + s.Boxes + ", золотых " + s.GoldBoxes + ", новогодних " + s.NyBoxes + ", нажатий " + Ui.Num(s.Keys) + ")");
             Row(g, new[] { "+10 лутбоксов", "+3 золотых", "До лутбокса 10 нажатий", "Все предметы" }, i =>
             {
                 if (i == 0) s.Boxes += 10;
@@ -123,6 +123,16 @@ namespace BongoBro
                 foreach (Item it in set.Pieces()) { s.Owned.Add(it.Id); s.SetEquipped(it.Slot, it.Id); }
                 MainForm.SetCharacter(set.Owner);
             }, -1);
+
+            Section(g, "Новый год, задания, питомцы");
+            int ni = !NewYear.DevOverride.HasValue ? 0 : NewYear.DevOverride.Value ? 1 : 2;
+            Row(g, new[] { "Новый год: авто", "Вкл", "Выкл", "+3 новогодних", "Выполнить задания", "Питомцу +5000" }, i =>
+            {
+                if (i <= 2) NewYear.DevOverride = i == 0 ? (bool?)null : i == 1;
+                else if (i == 3) s.NyBoxes += 3;
+                else if (i == 4) Quests.CompleteAll(s);
+                else PetLevels.Give(s, s.Pet, 5000);
+            }, ni);
 
             Section(g, "Эффекты");
             Row(g, new[] { "+1 лутбокс (эффект)", "Достижение", "Прыжок питомца", "Открыть лутбоксы" }, i =>

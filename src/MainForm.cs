@@ -25,7 +25,7 @@ namespace BongoBro
         readonly Timer timer;
         NotifyIcon tray;
         ContextMenuStrip menu;
-        ToolStripMenuItem miBox, miAch, miUpdate, miChar, miDev;
+        ToolStripMenuItem miBox, miAch, miUpdate, miChar, miDev, miQuests;
         UpdateForm upd;
         int lastUpdateCheck;
         string notifiedVersion, balloonKind;
@@ -40,6 +40,8 @@ namespace BongoBro
         readonly Queue<int> keyTimes = new Queue<int>();
         int lastDayCheck;
         AchievementsForm ach;
+        QuestsForm quests;
+        StatsForm stats;
         LeaderboardForm lb;
         DevForm dev;
         // reactions: pet hop, joy after rewards, waking up, occasional yawns
@@ -98,7 +100,10 @@ namespace BongoBro
             kbHook = Native.SetWindowsHookEx(13, kbProc, mod, 0);
             msHook = Native.SetWindowsHookEx(14, msProc, mod, 0);
             Game.Unlocked += OnUnlocked;
+            Quests.Completed += OnQuestDone;
+            PetLevels.LevelUp += OnPetLevelUp;
             Game.TouchDay();
+            Quests.Refresh(Game.S);
             Game.CheckAchievements();
             lastDayCheck = Environment.TickCount;
             counter = new CounterForm(this);
@@ -165,7 +170,7 @@ namespace BongoBro
                         pose.LitKey = (vk * 7 + rnd.Next(3)) % Art.KeyCount;
                         Sound.Key(right);
                         petHopAt = now;
-                        if (Game.AddKey()) OnBoxEarned();
+                        if (Game.AddKey(vk)) OnBoxEarned();
                         keyTimes.Enqueue(now);
                         while (now - keyTimes.Peek() > 60000) keyTimes.Dequeue();
                         Game.ReportKpm(keyTimes.Count);
@@ -208,11 +213,33 @@ namespace BongoBro
 
         void OnBoxEarned()
         {
-            fxText = "+1 ЛУТБОКС!";
+            bool ny = Game.LastBoxNewYear;
+            fxText = ny ? "+1 НОВОГОДНИЙ!" : "+1 ЛУТБОКС!";
             Sound.Event("box");
             happyUntil = Environment.TickCount + 3000;
             boxFxUntil = Environment.TickCount + 3000;
-            Balloon("loot", "Новый лутбокс!", "Ещё 2000 нажатий позади. Открой лутбокс в меню персонажа.");
+            if (ny) Balloon("loot", "Новогодний лутбокс!", "В нём вещи, которые выпадают только " + NewYear.Period + ".");
+            else Balloon("loot", "Новый лутбокс!", "Ещё 2000 нажатий позади. Открой лутбокс в меню персонажа.");
+        }
+
+        void OnQuestDone(Quest q, bool all)
+        {
+            fxText = "ЗАДАНИЕ!";
+            Sound.Event("ach");
+            happyUntil = Environment.TickCount + 3000;
+            boxFxUntil = Environment.TickCount + 3000;
+            Balloon("quests", all ? "Все задания дня выполнены!" : "Задание выполнено", q.Text + "\nНаграда: 1 лутбокс" + (all ? " и ещё +" + Quests.BonusBoxes + " за все три" : ""));
+        }
+
+        void OnPetLevelUp(string pet, int level)
+        {
+            Item it = Items.Get(pet);
+            fxText = "ПИТОМЕЦ ВЫРОС!";
+            Sound.Event("rare");
+            petHopAt = Environment.TickCount;
+            happyUntil = Environment.TickCount + 3000;
+            boxFxUntil = Environment.TickCount + 3000;
+            Balloon("shop", (it != null ? it.Name : "Питомец") + " вырос!", "Теперь уровень " + level + ": " + PetLevels.Name(level) + ".");
         }
 
         void OnUnlocked(Achievement a)
@@ -268,6 +295,18 @@ namespace BongoBro
             ShowForm(ach);
         }
 
+        public void OpenQuests()
+        {
+            if (quests == null || quests.IsDisposed) quests = new QuestsForm();
+            ShowForm(quests);
+        }
+
+        public void OpenStats()
+        {
+            if (stats == null || stats.IsDisposed) stats = new StatsForm();
+            ShowForm(stats);
+        }
+
         // ---------------- loop ----------------
         void OnTick(object sender, EventArgs e)
         {
@@ -308,15 +347,17 @@ namespace BongoBro
             pose.Mood = CurrentMood(now);
             pose.Day = CurrentDay();
             pose.PetHop = Math.Max(0f, 1f - (now - petHopAt) / 260f);
+            pose.PetLevel = PetLevels.LevelOf(Game.S, Game.S.Pet);
+            pose.NewYear = NewYear.Active;
 
             // full frame rate for glowing items, set effects and hops; half rate for calm idle motion
             bool anim = Art.IsAnimated(pose) || pose.ActiveSet != null || pose.PetHop > 0 || pose.Mood != Mood.Normal;
-            bool calm = pose.Pet != null || pose.Day == DayPhase.Morning || pose.Day == DayPhase.Night;
+            bool calm = pose.Pet != null || pose.NewYear || pose.Day == DayPhase.Morning || pose.Day == DayPhase.Night;
             frame++;
             string sig = string.Concat(new object[] {
                 pose.LeftDown, pose.RightDown, pose.OnMouse, pose.MouseDown, pose.Blink, pose.LitKey,
                 pose.MouseDX, pose.MouseDY, pose.Hat, pose.Glasses, pose.Gloves, pose.Face, pose.Theme, pose.Character,
-                pose.Pet, pose.Mood, pose.Day, Game.DevMode, scale });
+                pose.Pet, pose.PetLevel, pose.Mood, pose.Day, pose.NewYear, Game.DevMode, scale });
             if (shown && (anim || (calm && frame % 2 == 0) || sig != lastSig))
             {
                 lastSig = sig;
@@ -549,6 +590,8 @@ namespace BongoBro
             ToolStripMenuItem miShop = new ToolStripMenuItem("Гардероб и коллекция", Ui.MenuIcon("shirt", ip), delegate { OpenShop(); });
             miAch = new ToolStripMenuItem("Достижения", Ui.MenuIcon("trophy", ip), delegate { OpenAchievements(); });
             ToolStripMenuItem miBoard = new ToolStripMenuItem("Лидерборд", Ui.MenuIcon("podium", ip), delegate { OpenLeaderboard(); });
+            miQuests = new ToolStripMenuItem("Задания дня", Ui.MenuIcon("quest", ip), delegate { OpenQuests(); });
+            ToolStripMenuItem miStats = new ToolStripMenuItem("Статистика", Ui.MenuIcon("chart", ip), delegate { OpenStats(); });
             miChar = new ToolStripMenuItem("Персонаж", Ui.MenuIcon("user", ip));
             foreach (string id in Characters.Ids)
             {
@@ -632,15 +675,16 @@ namespace BongoBro
             ToolStripMenuItem miExit = new ToolStripMenuItem("Выход", Ui.MenuIcon("exit", ip), delegate { Close(); });
 
             menu.Items.AddRange(new ToolStripItem[] {
-                header, new ToolStripSeparator(), miChar, miBox, miShop, miAch, miBoard, new ToolStripSeparator(),
+                header, new ToolStripSeparator(), miChar, miBox, miShop, miQuests, miAch, miStats, miBoard, new ToolStripSeparator(),
                 charSlider.Host, counterSlider.Host, new ToolStripSeparator(),
                 miSound, tDay, tAuto, tTop, tCounter, tShown, miReset, new ToolStripSeparator(), miUpdate, miDev, miExit });
 
             menu.Opening += delegate
             {
-                int n = Game.S.Boxes, gold = Game.S.GoldBoxes;
-                miBox.Text = n + gold == 0 ? "Лутбоксы"
-                    : "Открыть лутбокс  (" + n + (gold > 0 ? " + " + gold + " зол." : "") + ")";
+                int n = Game.S.Boxes, gold = Game.S.GoldBoxes, ny = Game.S.NyBoxes;
+                miBox.Text = Game.TotalBoxes == 0 ? "Лутбоксы"
+                    : "Открыть лутбокс  (" + n + (gold > 0 ? " + " + gold + " зол." : "") + (ny > 0 ? " + " + ny + " нов." : "") + ")";
+                miQuests.Text = "Задания дня  (" + Quests.DoneCount(Game.S) + "/" + Quests.Count + ")";
                 miAch.Text = "Достижения  (" + Game.S.Achieved.Count + "/" + Achievement.All.Count + ")";
                 miChar.Text = "Персонаж: " + Characters.Name(Game.S.Character);
                 miDev.Text = Game.DevMode ? "Режим разработчика (вкл)" : "Код разработчика…";
@@ -662,7 +706,13 @@ namespace BongoBro
             tray.ContextMenuStrip = menu;
             tray.Visible = true;
             tray.DoubleClick += delegate { SetShown(!shown); };
-            tray.BalloonTipClicked += delegate { if (balloonKind == "update") OpenUpdate(); else OpenLoot(); };
+            tray.BalloonTipClicked += delegate
+            {
+                if (balloonKind == "update") OpenUpdate();
+                else if (balloonKind == "quests") OpenQuests();
+                else if (balloonKind == "shop") OpenShop();
+                else OpenLoot();
+            };
         }
     }
 }

@@ -8,6 +8,7 @@ namespace BongoBro
 {
     public enum Mood { Normal, Yawn, Sleep, Surprised, Focused, Happy }
     public enum DayPhase { Day, Morning, Evening, Night }
+    public enum BoxKind { Normal, Gold, NewYear }
 
     public class Pose
     {
@@ -19,6 +20,8 @@ namespace BongoBro
         public Mood Mood;
         public DayPhase Day;
         public float PetHop;   // 0..1, the pet jumps on key presses
+        public int PetLevel = 1;
+        public bool NewYear;   // snow and a garland during the New Year event
 
         public string Equipped(Slot s)
         {
@@ -41,6 +44,8 @@ namespace BongoBro
             p.T = t;
             p.Hat = s.Hat; p.Glasses = s.Glasses; p.Gloves = s.Gloves; p.Face = s.Face; p.Theme = s.Theme; p.Pet = s.Pet;
             p.Character = s.Character;
+            p.PetLevel = PetLevels.LevelOf(s, s.Pet);
+            p.NewYear = BongoBro.NewYear.Active;
             return p;
         }
     }
@@ -247,6 +252,7 @@ namespace BongoBro
             UseCharacter(p.Character);
             GraphicsState root = g.Save();
             DayBack(g, p);
+            if (p.NewYear) NewYearBack(g, p.T);
             SetBonusBack(g, p);
             ScaleAround(g, 180, 356, SceneScale);
             // weightless float while the astronaut set is worn
@@ -272,6 +278,7 @@ namespace BongoBro
             SpeedLines(g, p);
             g.Restore(root);
             SetBonusFront(g, p);
+            if (p.NewYear) Snowfall(g, p.T);
         }
 
         public static void DrawCharacterIn(Graphics g, RectangleF dst, Pose p)
@@ -597,7 +604,7 @@ namespace BongoBro
             {
                 case Slot.Gloves: DrawGlovePreview(g, it.Id, dst, t); return;
                 case Slot.Theme: DrawThemePreview(g, it.Id, dst, t); return;
-                case Slot.Pet: DrawPetPreview(g, it.Id, dst, t); return;
+                case Slot.Pet: DrawPetPreview(g, it.Id, dst, t, Game.S != null ? PetLevels.LevelOf(Game.S, it.Id) : 1); return;
             }
             Pose p = new Pose();
             p.T = t;
@@ -616,18 +623,26 @@ namespace BongoBro
             DrawLootBox(g, cx, cy, s, t, active, false);
         }
 
-        // Regular box: purple with a gold ribbon. Golden box: gold with a purple ribbon, always shining.
         public static void DrawLootBox(Graphics g, float cx, float cy, float s, float t, bool active, bool gold)
         {
-            Color bodyTop = gold ? Color.FromArgb(255, 222, 110) : Color.FromArgb(139, 92, 246);
-            Color bodyBot = gold ? Color.FromArgb(200, 130, 18) : Color.FromArgb(76, 29, 149);
-            Color lidTop = gold ? Color.FromArgb(255, 240, 160) : Color.FromArgb(180, 150, 255);
-            Color lidBot = gold ? Color.FromArgb(222, 156, 30) : Color.FromArgb(112, 50, 220);
-            Color ink = gold ? Color.FromArgb(110, 66, 8) : Color.FromArgb(34, 14, 66);
-            Color ribA = gold ? Color.FromArgb(190, 120, 255) : Color.FromArgb(255, 230, 120);
-            Color ribB = gold ? Color.FromArgb(110, 40, 200) : Color.FromArgb(214, 150, 30);
-            Color ribInk = gold ? Color.FromArgb(60, 16, 110) : Color.FromArgb(130, 84, 16);
-            Color glow = gold ? Color.FromArgb(255, 200, 80) : Color.FromArgb(170, 120, 255);
+            DrawLootBox(g, cx, cy, s, t, active, gold ? BoxKind.Gold : BoxKind.Normal);
+        }
+
+        // Regular box: purple with a gold ribbon. Golden box: gold with a purple ribbon, always shining.
+        // New Year box: red with a green ribbon and a snowflake.
+        public static void DrawLootBox(Graphics g, float cx, float cy, float s, float t, bool active, BoxKind kind)
+        {
+            bool gold = kind == BoxKind.Gold, ny = kind == BoxKind.NewYear;
+            Color bodyTop = gold ? Color.FromArgb(255, 222, 110) : ny ? Color.FromArgb(236, 64, 70) : Color.FromArgb(139, 92, 246);
+            Color bodyBot = gold ? Color.FromArgb(200, 130, 18) : ny ? Color.FromArgb(150, 18, 32) : Color.FromArgb(76, 29, 149);
+            Color lidTop = gold ? Color.FromArgb(255, 240, 160) : ny ? Color.FromArgb(255, 110, 110) : Color.FromArgb(180, 150, 255);
+            Color lidBot = gold ? Color.FromArgb(222, 156, 30) : ny ? Color.FromArgb(196, 34, 46) : Color.FromArgb(112, 50, 220);
+            Color ink = gold ? Color.FromArgb(110, 66, 8) : ny ? Color.FromArgb(80, 8, 16) : Color.FromArgb(34, 14, 66);
+            Color ribA = gold ? Color.FromArgb(190, 120, 255) : ny ? Color.FromArgb(90, 210, 110) : Color.FromArgb(255, 230, 120);
+            Color ribB = gold ? Color.FromArgb(110, 40, 200) : ny ? Color.FromArgb(24, 120, 56) : Color.FromArgb(214, 150, 30);
+            Color ribInk = gold ? Color.FromArgb(60, 16, 110) : ny ? Color.FromArgb(10, 70, 30) : Color.FromArgb(130, 84, 16);
+            Color glow = gold ? Color.FromArgb(255, 200, 80) : ny ? Color.FromArgb(180, 220, 255) : Color.FromArgb(170, 120, 255);
+            gold = gold || ny;   // both special boxes always shine
             if (active || gold)
             {
                 float pulse = 0.7f + 0.3f * Sin(t * 3);
@@ -666,7 +681,8 @@ namespace BongoBro
             FillEl(g, Mix(ribA, Color.White, 0.1f), cx - s * 0.075f, lidR.Y - s * 0.12f, s * 0.15f, s * 0.15f);
             using (Pen o = P(ribInk, lw * 0.8f)) g.DrawEllipse(o, cx - s * 0.075f, lidR.Y - s * 0.12f, s * 0.15f, s * 0.15f);
             using (SolidBrush hl = new SolidBrush(Color.FromArgb(gold ? 110 : 70, 255, 255, 255))) g.FillRectangle(hl, bx + bw * 0.08f, by + bh * 0.12f, bw * 0.08f, bh * 0.7f);
-            if (gold)
+            if (ny) Snowflake(g, cx - bw * 0.28f, by + bh * 0.52f, s * 0.08f, Color.FromArgb(240, 255, 255, 255), lw * 0.9f);
+            else if (gold)
                 using (GraphicsPath st = Star(cx - bw * 0.3f, by + bh * 0.55f, s * 0.07f, s * 0.03f, 5, -90))
                     Fill(g, Color.FromArgb(255, 255, 250, 220), st);
             if (active || gold)

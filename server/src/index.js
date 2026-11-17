@@ -11,6 +11,7 @@ const MIN_SUBMIT_GAP_MS = 30 * 1000;        // per player
 const MAX_KEYS_PER_SEC = 25;                // fastest humans stay well below this
 const MAX_FIRST_KEYS = 20000000;            // first report can carry old progress
 const NAME_RE = /^[\p{L}\p{N} _.\-]{2,16}$/u;
+const OUTFIT_RE = /^[a-z0-9_]{0,32},[a-z0-9_]{0,32},[a-z0-9_]{0,32}$/;
 
 export default {
   async fetch(req, env) {
@@ -49,6 +50,8 @@ async function submit(req, env) {
   const name = String(b.name || "").trim().replace(/\s+/g, " ");
   const keys = Math.floor(Number(b.keys));
   const ch = ["yura", "vlad", "stas"].includes(b.char) ? b.char : "yura";
+  // avatar outfit: "hat,glasses,face" item ids; older apps do not send it and keep the stored one
+  const outfit = typeof b.outfit === "string" && OUTFIT_RE.test(b.outfit) ? b.outfit : null;
   if (!/^[0-9a-f]{32}$/.test(id) || !/^[0-9a-f]{64}$/.test(token)) return json({ error: "bad_id" }, 400);
   if (!NAME_RE.test(name)) return json({ error: "bad_name", got: name }, 400);
   if (!Number.isFinite(keys) || keys < 0) return json({ error: "bad_keys" }, 400);
@@ -65,8 +68,8 @@ async function submit(req, env) {
   if (!me) {
     if (keys > MAX_FIRST_KEYS) return json({ error: "too_many_keys" }, 422);
     await env.DB.prepare(
-      "INSERT INTO players (id, token_hash, name, name_key, char, keys, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-    ).bind(id, hash, name, nameKey, ch, keys, now, now).run();
+      "INSERT INTO players (id, token_hash, name, name_key, char, keys, outfit, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    ).bind(id, hash, name, nameKey, ch, keys, outfit || "", now, now).run();
     return json({ ok: true, keys });
   }
 
@@ -77,17 +80,17 @@ async function submit(req, env) {
   const allowed = me.keys + Math.ceil((now - me.updated_at) / 1000 * MAX_KEYS_PER_SEC);
   const clamped = accepted > allowed;
   if (clamped) accepted = allowed;
-  await env.DB.prepare("UPDATE players SET name = ?, name_key = ?, char = ?, keys = ?, updated_at = ? WHERE id = ?")
-    .bind(name, nameKey, ch, accepted, now, id).run();
+  await env.DB.prepare("UPDATE players SET name = ?, name_key = ?, char = ?, keys = ?, outfit = COALESCE(?, outfit), updated_at = ? WHERE id = ?")
+    .bind(name, nameKey, ch, accepted, outfit, now, id).run();
   return json({ ok: true, keys: accepted, clamped });
 }
 
 async function buildSnapshot(env) {
   const now = Date.now();
   const { results } = await env.DB.prepare(
-    "SELECT id, name, char, keys FROM players WHERE keys > 0 ORDER BY keys DESC, updated_at ASC"
+    "SELECT id, name, char, keys, outfit FROM players WHERE keys > 0 ORDER BY keys DESC, updated_at ASC"
   ).all();
-  const ranked = results.map((r, i) => ({ rank: i + 1, id: r.id, name: r.name, char: r.char, keys: r.keys }));
+  const ranked = results.map((r, i) => ({ rank: i + 1, id: r.id, name: r.name, char: r.char, keys: r.keys, outfit: r.outfit || "" }));
   const data = JSON.stringify({ created: now, ranked });
   await env.DB.prepare(
     "INSERT INTO snapshot (k, data, created_at) VALUES (1, ?, ?) ON CONFLICT(k) DO UPDATE SET data = excluded.data, created_at = excluded.created_at"
@@ -106,7 +109,7 @@ async function leaderboard(url, env) {
   }
   const id = url.searchParams.get("id");
   const meEntry = id ? snap.ranked.find(r => r.id === id) : null;
-  const strip = r => ({ rank: r.rank, name: r.name, char: r.char, keys: r.keys, me: !!id && r.id === id });
+  const strip = r => ({ rank: r.rank, name: r.name, char: r.char, keys: r.keys, outfit: r.outfit || "", me: !!id && r.id === id });
   return json({
     updated: snap.created,
     next: nextRefresh(snap.created),

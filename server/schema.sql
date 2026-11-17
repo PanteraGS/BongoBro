@@ -6,9 +6,13 @@ CREATE TABLE IF NOT EXISTS players (
   name_key    TEXT NOT NULL UNIQUE,      -- lower-cased name, for uniqueness
   char        TEXT NOT NULL DEFAULT 'yura',
   keys        INTEGER NOT NULL DEFAULT 0,
+  outfit      TEXT NOT NULL DEFAULT '',  -- "hat,glasses,face" item ids shown on the avatar
   created_at  INTEGER NOT NULL,
   updated_at  INTEGER NOT NULL
 );
+
+-- added in 1.5.0 (run once on an existing database):
+--   ALTER TABLE players ADD COLUMN outfit TEXT NOT NULL DEFAULT '';
 
 -- single row holding the last published ranking (JSON)
 CREATE TABLE IF NOT EXISTS snapshot (

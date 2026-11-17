@@ -349,6 +349,8 @@ namespace BongoBro
             switch (p.Face)
             {
                 case "set_beer_face": BeerFoamMustache(g); break;
+                case "ny_frost": FrostFace(g, t); break;
+                case "ny_scarf": Scarf(g); break;
                 case "fc_mustache":
                     for (int k = 0; k < 2; k++)
                     {

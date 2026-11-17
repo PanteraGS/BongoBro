@@ -164,7 +164,10 @@ namespace BongoBro
             Pose face = new Pose();
             face.T = t;
             face.Character = Characters.Normalize(e.Char);
-            Art.DrawBust(g, new RectangleF(96, 40, 168, 168), new RectangleF(r.X + 46, r.Y + 2, 34, 34), face);
+            face.Hat = e.Hat; face.Glasses = e.Glasses; face.Face = e.Face;
+            // a hat needs room above the head
+            RectangleF src = e.Hat != null ? new RectangleF(84, 0, 192, 214) : new RectangleF(96, 40, 168, 168);
+            Art.DrawBust(g, src, new RectangleF(r.X + 44, r.Y + 1, 36, 36), face);
 
             Ui.TextL(g, e.Name + (e.Me ? "  (ты)" : ""), Ui.F(15, true), e.Me ? Color.White : Ui.Fg, r.X + 88, r.Y + 8);
             Ui.TextR(g, Ui.Num(e.Keys), Ui.F(15, true), e.Rank <= 3 ? Medals[e.Rank - 1] : Ui.Fg, new RectangleF(r.Right - 200, r.Y + 7, 186, 24));

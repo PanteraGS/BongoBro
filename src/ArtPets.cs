@@ -18,18 +18,132 @@ namespace BongoBro
             float breathe = 1 + 0.03f * Sin(p.T * 2.2);
             g.TranslateTransform(PetSpot.X, PetSpot.Y - hop);
             Glow(g, 0, 2 + hop, 32, 6, Color.Black, 70);
-            g.ScaleTransform(1.35f, 1.35f * breathe);
+            // the pet grows with its level; the adult one also glows
+            float grow = p.PetLevel >= 3 ? 1.16f : p.PetLevel == 2 ? 1.04f : 0.9f;
+            if (p.PetLevel >= 3) Glow(g, 0, -30 * grow, 40, 44, Color.FromArgb(255, 210, 90), (int)(110 + 40 * Sin(p.T * 2)));
+            g.ScaleTransform(1.35f * grow, 1.35f * grow * breathe);
             bool sleep = p.Mood == Mood.Sleep;
-            DrawPetBody(g, p.Pet, p.T, sleep);
+            DrawPetGrown(g, p.Pet, p.T, sleep, p.PetLevel);
             g.Restore(st);
+            if (p.PetLevel >= 2 && !sleep)
+                for (int k = 0; k < (p.PetLevel >= 3 ? 4 : 2); k++)
+                {
+                    double a = p.T * 1.6 + k * Math.PI * 2 / (p.PetLevel >= 3 ? 4 : 2);
+                    float ph = (p.T * 0.9f + k * 0.37f) % 1f;
+                    Sparkle(g, PetSpot.X + Cos(a) * 30, PetSpot.Y - 34 - hop + Sin(a) * 12, 3.5f * Sin(ph * Math.PI),
+                        p.PetLevel >= 3 ? Color.FromArgb(255, 226, 120) : Color.FromArgb(200, 230, 255));
+                }
             if (sleep) Zzz(g, PetSpot.X + 20, PetSpot.Y - 66, p.T, 0.8f);
         }
 
         public static void DrawPetPreview(Graphics g, string id, RectangleF dst, float t)
         {
-            GraphicsState st = Fit(g, new RectangleF(-34, -62, 68, 70), dst);
-            DrawPetBody(g, id, t, false);
+            DrawPetPreview(g, id, dst, t, 1);
+        }
+
+        public static void DrawPetPreview(Graphics g, string id, RectangleF dst, float t, int level)
+        {
+            GraphicsState st = Fit(g, new RectangleF(-36, -72, 72, 80), dst);
+            if (level >= 3) Glow(g, 0, -30, 34, 38, Color.FromArgb(255, 210, 90), 110);
+            DrawPetGrown(g, id, t, false, level);
             g.Restore(st);
+        }
+
+        // ---------- growth stages ----------
+        // Where the head top and the neck are on each pet: { headTop, neckY, neckWidth, headX }.
+        // neckWidth 0 = the pet already wears something there (or has no neck), so no neckerchief.
+        static readonly System.Collections.Generic.Dictionary<string, float[]> PetAnchors = new System.Collections.Generic.Dictionary<string, float[]>
+        {
+            { "pet_cat", new float[] { -46, -21, 26, 0 } },
+            { "pet_hamster", new float[] { -38, -15, 26, 0 } },
+            { "pet_duck", new float[] { -44, -23, 20, 1 } },
+            { "pet_frog", new float[] { -40, -14, 30, 0 } },
+            { "pet_penguin", new float[] { -46, -19, 24, 0 } },
+            { "pet_fox", new float[] { -46, -21, 26, 0 } },
+            { "pet_panda", new float[] { -48, -19, 28, 0 } },
+            { "pet_owl", new float[] { -46, -21, 24, 0 } },
+            { "pet_axolotl", new float[] { -44, -19, 26, 0 } },
+            { "pet_corgi", new float[] { -46, -21, 26, 0 } },
+            { "pet_melon", new float[] { -40, -6, 0, 0 } },
+            { "pet_robot", new float[] { -56, -22, 22, 0 } },
+            { "pet_dragon", new float[] { -50, -22, 24, 0 } },
+            { "pet_unicorn", new float[] { -46, -21, 26, -10 } },
+            { "set_samurai_shiba", new float[] { -46, -21, 0, 0 } },
+            { "set_pirate_parrot", new float[] { -56, -27, 20, 0 } },
+            { "set_astro_alien", new float[] { -52, -19, 0, 0 } },
+            { "set_sausage_dachshund", new float[] { -44, -26, 0, 17 } },
+            { "set_beer_hop", new float[] { -58, -14, 20, 0 } },
+            { "ny_snowman", new float[] { -60, -27, 0, 0 } },
+        };
+
+        // Малыш: a bow on the head; Подросток: a neckerchief with a star;
+        // Взрослый: a royal cape behind, a gold medal and a crown.
+        static void DrawPetGrown(Graphics g, string id, float t, bool sleep, int level)
+        {
+            float[] a;
+            if (!PetAnchors.TryGetValue(id, out a)) a = new float[] { -46, -21, 26, 0 };
+            float top = a[0], neck = a[1], nw = a[2] > 0 ? a[2] : 24, hx = a[3];
+            if (level >= 3)
+                using (GraphicsPath cape = new GraphicsPath())
+                {
+                    cape.AddLine(-nw / 2, neck, nw / 2, neck);
+                    cape.AddBezier(nw / 2, neck, nw / 2 + 8, neck + 8, nw / 2 + 12, -8, nw / 2 + 10, 0);
+                    cape.AddLine(nw / 2 + 10, 0, -nw / 2 - 10, 0);
+                    cape.AddBezier(-nw / 2 - 10, 0, -nw / 2 - 12, -8, -nw / 2 - 8, neck + 8, -nw / 2, neck);
+                    cape.CloseFigure();
+                    Grad(g, cape, Color.FromArgb(220, 40, 60), Color.FromArgb(120, 10, 30));
+                    Stroke(g, PetInk, 1.4f, cape);
+                    using (Pen hem = P(Color.FromArgb(255, 210, 90), 2f)) g.DrawLine(hem, -nw / 2 - 10, -1, nw / 2 + 10, -1);
+                }
+            DrawPetBody(g, id, t, sleep);
+            if (level == 2 && a[2] > 0)
+            {
+                using (GraphicsPath sc = new GraphicsPath())
+                {
+                    sc.AddPolygon(new PointF[] { new PointF(-nw / 2, neck - 1), new PointF(nw / 2, neck - 1), new PointF(nw / 2 - 2, neck + 3), new PointF(0, neck + 11), new PointF(-nw / 2 + 2, neck + 3) });
+                    Grad(g, sc, Color.FromArgb(60, 200, 220), Color.FromArgb(20, 120, 170));
+                    Stroke(g, PetInk, 1.2f, sc);
+                }
+                using (GraphicsPath st = Star(0, neck + 4, 3.2f, 1.4f, 5, -90)) Fill(g, Color.FromArgb(255, 236, 140), st);
+            }
+            if (level >= 3)
+            {
+                if (a[2] > 0)
+                {
+                    Line(g, Color.FromArgb(200, 150, 30), 1.4f, -5, neck, 0, neck + 6);
+                    Line(g, Color.FromArgb(200, 150, 30), 1.4f, 5, neck, 0, neck + 6);
+                    using (GraphicsPath md = new GraphicsPath())
+                    {
+                        md.AddEllipse(-3.5f, neck + 5, 7, 7);
+                        Grad(g, md, Color.FromArgb(255, 240, 160), Color.FromArgb(220, 150, 20));
+                        Stroke(g, Color.FromArgb(140, 90, 10), 1f, md);
+                    }
+                }
+                PetCrown(g, hx, top + 1, t);
+            }
+            if (level <= 1) PetBow(g, hx + 7, top + 3);
+        }
+
+        static void PetCrown(Graphics g, float cx, float baseY, float t)
+        {
+            using (GraphicsPath c = new GraphicsPath())
+            {
+                c.AddPolygon(new PointF[] {
+                    new PointF(cx - 9, baseY), new PointF(cx - 10, baseY - 9), new PointF(cx - 5, baseY - 5), new PointF(cx, baseY - 12),
+                    new PointF(cx + 5, baseY - 5), new PointF(cx + 10, baseY - 9), new PointF(cx + 9, baseY) });
+                Grad(g, c, Color.FromArgb(255, 240, 150), Color.FromArgb(225, 150, 20));
+                Stroke(g, Color.FromArgb(130, 80, 10), 1.2f, c);
+            }
+            FillEl(g, Color.FromArgb(230, 40, 70), cx - 1.8f, baseY - 5, 3.6f, 3.6f);
+            Sparkle(g, cx + 6, baseY - 11, 2 + 1.2f * Sin(t * 5), Color.White);
+        }
+
+        static void PetBow(Graphics g, float cx, float cy)
+        {
+            Color pink = Color.FromArgb(255, 130, 180), dark = Color.FromArgb(190, 60, 110);
+            using (GraphicsPath l = new GraphicsPath()) { l.AddPolygon(new PointF[] { new PointF(cx, cy), new PointF(cx - 7, cy - 5), new PointF(cx - 7, cy + 5) }); Fill(g, pink, l); Stroke(g, dark, 1f, l); }
+            using (GraphicsPath r = new GraphicsPath()) { r.AddPolygon(new PointF[] { new PointF(cx, cy), new PointF(cx + 7, cy - 5), new PointF(cx + 7, cy + 5) }); Fill(g, pink, r); Stroke(g, dark, 1f, r); }
+            FillEl(g, dark, cx - 2, cy - 2, 4, 4);
         }
 
         static void DrawPetBody(Graphics g, string id, float t, bool sleep)
@@ -55,6 +169,7 @@ namespace BongoBro
                 case "set_astro_alien": Alien(g, t, sleep); break;
                 case "set_sausage_dachshund": Dachshund(g, t, sleep); break;
                 case "set_beer_hop": HopCone(g, t, sleep); break;
+                case "ny_snowman": Snowman(g, t, sleep); break;
             }
         }
 

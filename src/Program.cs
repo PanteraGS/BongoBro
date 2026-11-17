@@ -83,6 +83,13 @@ namespace BongoBro
             Application.Run(host);
         }
 
+        static ShopForm NewYearShop()
+        {
+            ShopForm f = new ShopForm();
+            f.ShowNewYearTab();
+            return f;
+        }
+
         static ShopForm SetsShop(bool personal = false)
         {
             ShopForm f = new ShopForm();
@@ -96,10 +103,13 @@ namespace BongoBro
             Application.EnableVisualStyles();
             Game.S = SaveData.Load();
             if (which == "loot-gold") { Game.S.GoldBoxes = 2; which = "loot"; }
+            if (which == "loot-ny") { Game.S.GoldBoxes = 1; Game.S.NyBoxes = 2; which = "loot"; }
+            if (which == "nyshop") NewYear.DevOverride = true;
             if (Characters.Preview != null) Game.S.Character = Characters.Preview;
             Form f = which == "loot" ? (Form)new LootForm() : which == "shop" ? (Form)new ShopForm()
                 : which == "update" ? (Form)new UpdateForm() : which == "board" ? (Form)new LeaderboardForm()
-                : which == "dev" ? (Form)new DevForm(null) : which == "sets" ? (Form)SetsShop() : which == "psets" ? (Form)SetsShop(true) : new AchievementsForm();
+                : which == "dev" ? (Form)new DevForm(null) : which == "sets" ? (Form)SetsShop() : which == "psets" ? (Form)SetsShop(true) : which == "quests" ? (Form)new QuestsForm() : which == "stats" ? (Form)new StatsForm()
+                : which == "nyshop" ? (Form)NewYearShop() : new AchievementsForm();
             f.StartPosition = FormStartPosition.Manual;
             f.Location = new Point(-5000, -5000);
             f.ShowInTaskbar = false;
