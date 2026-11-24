@@ -5,7 +5,7 @@ using System.Drawing.Drawing2D;
 
 namespace BongoBro
 {
-    public enum ThemeFx { None, Retro, Sakura, Ocean, Marble, Cyber, Candy, Rgb, Cosmos, Mission }
+    public enum ThemeFx { None, Retro, Sakura, Ocean, Marble, Cyber, Candy, Rgb, Cosmos, Mission, Sunset, Aurora }
 
     // Colors of the keyboard, mouse and key counter ("Стиль" slot).
     public class Theme
@@ -47,6 +47,10 @@ namespace BongoBro
             { "th_candy",    new Theme(ThemeFx.Candy,  0xFFF0F8, 0xF8D2E6, 0xE6A0C8, 0xFFFFFF, 0xD2AAC8, 0xFFFFFF, 0xFFDCEC, 0xFFC8E0, 0xC8E6FF, 0xFFE6F4, 0xFF8CC8, 0xB43C82, 0xFF8CC8) },
             { "th_rgb",      new Theme(ThemeFx.Rgb,    0x18181C, 0x08080A, 0x000000, 0x26262C, 0x0C0C10, 0xFFFFFF, 0x1C1C22, 0x101014, 0x050506, 0x08080A, 0xFF0080, 0xFFFFFF, 0xFF0080) },
             { "th_cosmos",   new Theme(ThemeFx.Cosmos, 0x2A1050, 0x080418, 0x05020E, 0x2E2864, 0x120E30, 0xC8F0FF, 0x1A1238, 0x3C1C6E, 0x0A0620, 0x1A0C3C, 0xFF6EDC, 0xFFFFFF, 0x78E6FF) },
+            { "th_choco",    new Theme(ThemeFx.None,   0x6B4A32, 0x4A3222, 0x2E1E14, 0xF6E8D8, 0xC4A284, 0xFFC85A, 0x8A5A3C, 0x54382A, 0x38241A, 0x2E1E14, 0xB07A4A, 0xFFE8C8, 0xE8985A) },
+            { "th_lime",     new Theme(ThemeFx.None,   0xB4E64A, 0x84BE2E, 0x4E7E1E, 0xFAFFF0, 0xC4E89E, 0xFF5A8C, 0xD8F6A0, 0x6EA428, 0x4A7418, 0x2C4A12, 0xAEE64A, 0xF4FFE0, 0xC4FF4A) },
+            { "th_sunset",   new Theme(ThemeFx.Sunset, 0xFF9A5A, 0xC8507E, 0x6E2A50, 0xFFF0E0, 0xE8AA96, 0xFFE14A, 0xFFB46E, 0x8A3A66, 0x56204A, 0x401638, 0xFF9A5A, 0xFFE8D8, 0xFFB44A) },
+            { "th_aurora",   new Theme(ThemeFx.Aurora, 0x14283E, 0x0A1626, 0x050C16, 0x1E3A50, 0x0C1E30, 0x5CFFC8, 0x18304A, 0x0E1E32, 0x081220, 0x0A1826, 0x3CE6B4, 0xD8FFF2, 0x5CFFC8) },
             { "set_astro_style", new Theme(ThemeFx.Mission, 0x3C3F48, 0x24262C, 0x141518, 0xDADDE3, 0x868B96, 0x5CF07E, 0xECEEF2, 0x2C3B57, 0x1A2438, 0x0C1A10, 0xFF8A2A, 0x6CFF8E, 0xFF8A2A) },
             { "set_sausage_style", new Theme(ThemeFx.None, 0xD8453A, 0xA82A22, 0x6E1612, 0xFFF4D8, 0xD8B884, 0xFFD23C, 0xFFD23C, 0xE0A060, 0xB87634, 0x5A1410, 0xFFD23C, 0xFFF4D8, 0xFFD23C) },
             { "set_melon_style", new Theme(ThemeFx.None, 0x5DAA4A, 0x3C7E30, 0x245A1E, 0xFF8A90, 0xD04A54, 0xF4FFE0, 0x6CC04A, 0xFF6A72, 0xD03A48, 0x1E4A1A, 0xFF6A72, 0xFFFFFF, 0xFF6A72) },
@@ -113,6 +117,15 @@ namespace BongoBro
                     top = Mix(th.Key, Hsv(250 + 40 * Sin(t * 2 + idx), 0.6f, 0.6f), 0.35f);
                     shade = th.KeyShade;
                     return;
+                case ThemeFx.Sunset:
+                    // a warm gradient from the space bar to the far edge, like the sky at dusk
+                    top = Mix(Color.FromArgb(255, 214, 120), Color.FromArgb(200, 80, 140), xk);
+                    shade = Mix(top, Color.FromArgb(110, 40, 80), 0.45f);
+                    return;
+                case ThemeFx.Aurora:
+                    top = Mix(th.Key, Hsv(150 + 70 * Sin(t * 1.4f + idx * 0.35f + row), 0.65f, 0.95f), 0.45f);
+                    shade = th.KeyShade;
+                    return;
             }
             top = th.Key; shade = th.KeyShade;
         }
@@ -123,11 +136,11 @@ namespace BongoBro
             float t = p.T;
             Glow(g, 170, 346, 160, 16, Color.Black, 80);
             PointF[] body = { new PointF(46, 268), new PointF(284, 268), new PointF(302, 338), new PointF(28, 338) };
-            if (th.Fx == ThemeFx.Rgb || th.Fx == ThemeFx.Cyber || th.Fx == ThemeFx.Cosmos)
+            if (th.Fx == ThemeFx.Rgb || th.Fx == ThemeFx.Cyber || th.Fx == ThemeFx.Cosmos || th.Fx == ThemeFx.Aurora)
                 using (GraphicsPath gp = new GraphicsPath())
                 {
                     gp.AddPolygon(new PointF[] { body[0], body[1], new PointF(302, 348), new PointF(28, 348) });
-                    Color gc = th.Fx == ThemeFx.Rgb ? Hsv(t * 100, 0.9f, 1f) : th.Fx == ThemeFx.Cyber ? Color.FromArgb(0, 240, 255) : Color.FromArgb(255, 110, 220);
+                    Color gc = th.Fx == ThemeFx.Rgb ? Hsv(t * 100, 0.9f, 1f) : th.Fx == ThemeFx.Cyber ? Color.FromArgb(0, 240, 255) : th.Fx == ThemeFx.Aurora ? Hsv(t * 60 + 120, 0.7f, 1f) : Color.FromArgb(255, 110, 220);
                     GlowPath(g, gp, gc, th.Fx == ThemeFx.Cyber ? 0.6f : 0.8f + 0.2f * Sin(t * 3));
                 }
             using (GraphicsPath front = new GraphicsPath())
@@ -232,6 +245,7 @@ namespace BongoBro
             {
                 if (th.Fx == ThemeFx.Rgb) GlowPath(g, pad, Hsv(t * 100 + 180, 0.9f, 1f), 0.8f);
                 if (th.Fx == ThemeFx.Cyber) GlowPath(g, pad, Color.FromArgb(0, 240, 255), 0.5f);
+                if (th.Fx == ThemeFx.Aurora) GlowPath(g, pad, Hsv(t * 60 + 120, 0.7f, 1f), 0.5f);
                 Grad(g, pad, th.PadTop, th.PadBot);
                 GraphicsState st = g.Save();
                 g.SetClip(pad, CombineMode.Intersect);
@@ -269,9 +283,9 @@ namespace BongoBro
             }
             Line(g, Color.FromArgb(120, 124, 140), 1.4f, 0, -17, 0, -4);
             using (GraphicsPath w = RR(new RectangleF(-2, -13, 4, 7), 2)) Fill(g, Color.FromArgb(90, 96, 110), w);
-            if (th.Fx == ThemeFx.Rgb || th.Fx == ThemeFx.Cyber || th.Fx == ThemeFx.Cosmos)
+            if (th.Fx == ThemeFx.Rgb || th.Fx == ThemeFx.Cyber || th.Fx == ThemeFx.Cosmos || th.Fx == ThemeFx.Aurora)
             {
-                Color lc = th.Fx == ThemeFx.Rgb ? Hsv(t * 140, 0.8f, 1f) : th.Fx == ThemeFx.Cyber ? Color.FromArgb(0, 240, 255) : Color.FromArgb(255, 120, 230);
+                Color lc = th.Fx == ThemeFx.Rgb ? Hsv(t * 140, 0.8f, 1f) : th.Fx == ThemeFx.Cyber ? Color.FromArgb(0, 240, 255) : th.Fx == ThemeFx.Aurora ? Hsv(t * 60 + 120, 0.8f, 1f) : Color.FromArgb(255, 120, 230);
                 Glow(g, 0, 7, 9, 9, lc, 220);
                 FillEl(g, Mix(lc, Color.White, 0.5f), -2.5f, 4.5f, 5, 5);
             }
@@ -287,6 +301,7 @@ namespace BongoBro
                 if (th.Fx == ThemeFx.Rgb) GlowPath(g, p, Hsv(t * 100, 0.9f, 1f), 0.8f);
                 else if (th.Fx == ThemeFx.Cosmos) GlowPath(g, p, Color.FromArgb(255, 110, 220), 0.6f + 0.3f * Sin(t * 3));
                 else if (th.Fx == ThemeFx.Cyber) GlowPath(g, p, th.PillBorder, 0.5f);
+                else if (th.Fx == ThemeFx.Aurora) GlowPath(g, p, Hsv(t * 60 + 120, 0.7f, 1f), 0.5f + 0.2f * Sin(t * 2));
                 else if (th.Fx == ThemeFx.Marble) GlowPath(g, p, th.PillBorder, 0.3f);
                 Color bg2 = th.Fx == ThemeFx.Cosmos ? Color.FromArgb(235, 60, 20, 90) : th.Fx == ThemeFx.Candy ? Color.FromArgb(235, 214, 236, 255) : Mix(th.PillBg, Color.Black, 0.15f);
                 using (LinearGradientBrush b = new LinearGradientBrush(new RectangleF(r.X, r.Y - 1, r.Width, r.Height + 2), th.PillBg, bg2, th.Fx == ThemeFx.Candy ? 0f : 90f)) g.FillPath(b, p);
@@ -321,6 +336,7 @@ namespace BongoBro
                 Color c1 = th.Bar, c2 = Mix(th.Bar, Color.White, 0.4f);
                 if (th.Fx == ThemeFx.Rgb) { c1 = Hsv(t * 120, 0.9f, 1f); c2 = Hsv(t * 120 + 120, 0.9f, 1f); }
                 if (th.Fx == ThemeFx.Cosmos) { c1 = Color.FromArgb(255, 110, 220); c2 = th.Bar; }
+                if (th.Fx == ThemeFx.Aurora) { c1 = Hsv(t * 80 + 100, 0.7f, 1f); c2 = Hsv(t * 80 + 220, 0.7f, 1f); }
                 using (GraphicsPath fp = RR(f, f.Height / 2))
                 using (LinearGradientBrush b = new LinearGradientBrush(new RectangleF(f.X - 1, f.Y, f.Width + 2, f.Height), c1, c2, 0f))
                     g.FillPath(b, fp);

@@ -7,7 +7,7 @@ namespace BongoBro
     // Today's three quests, their progress and rewards.
     public class QuestsForm : CustomForm
     {
-        public QuestsForm() : base(680, 430, "BongoBro: задания") { }
+        public QuestsForm() : base(680, 472, "BongoBro: задания") { }
 
         protected override void PaintUi(Graphics g, float t)
         {
@@ -61,6 +61,23 @@ namespace BongoBro
                     g.FillEllipse(b, br.Right - 210 + i * 24, br.Y + 32, 16, 16);
             Art.DrawLootBox(g, br.Right - 100, br.Y + 44, 44, t, all, false);
             Ui.TextC(g, "+" + Quests.BonusBoxes, Ui.F(15, true), Ui.Gold, new RectangleF(br.Right - 60, br.Y + 28, 40, 24));
+
+            // daily streak: a box for every day in a row, a gold one every 7th
+            RectangleF sr = new RectangleF(16, 420, W - 32, 42);
+            using (GraphicsPath p = Art.RR(sr, 12))
+            {
+                using (SolidBrush b = new SolidBrush(Art.Mix(Ui.Panel, Ui.Accent, 0.08f))) g.FillPath(b, p);
+                using (Pen pen = new Pen(Ui.Border, 1.4f)) g.DrawPath(pen, p);
+            }
+            Ui.TextL(g, "Стрик: " + s.Streak + " " + MainForm.StreakWord(s.Streak), Ui.F(14, true), Ui.Fg, sr.X + 18, sr.Y + 4);
+            Ui.TextL(g, "Заходи каждый день: +1 лутбокс, а каждый 7-й день — ещё и золотой", Ui.F(11.5f, false), Ui.Sub, sr.X + 18, sr.Y + 24);
+            int cyc = s.Streak % 7;
+            for (int i = 1; i <= 7; i++)
+            {
+                bool on = i <= cyc || s.Streak > 0 && cyc == 0;
+                Color c = i == 7 ? (on ? Ui.Gold : Art.Mix(Ui.Panel, Ui.Gold, 0.35f)) : on ? Ui.Accent : Art.Mix(Ui.Panel, Color.White, 0.12f);
+                using (SolidBrush b = new SolidBrush(c)) g.FillEllipse(b, sr.Right - 196 + i * 24, sr.Y + 13, 15, 15);
+            }
         }
     }
 }

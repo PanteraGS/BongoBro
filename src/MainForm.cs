@@ -102,6 +102,7 @@ namespace BongoBro
             Game.Unlocked += OnUnlocked;
             Quests.Completed += OnQuestDone;
             PetLevels.LevelUp += OnPetLevelUp;
+            Game.StreakDay += OnStreakDay;
             Game.TouchDay();
             Quests.Refresh(Game.S);
             Game.CheckAchievements();
@@ -250,6 +251,27 @@ namespace BongoBro
             boxFxUntil = Environment.TickCount + 3500;
             Balloon("loot", "Достижение: " + a.Name, a.Desc + "\nНаграда: " + a.RewardText());
         }
+
+        // a box for every day in a row, a gold one every 7th (granted by Game.TouchDay)
+        void OnStreakDay(int days, int boxes, int gold)
+        {
+            fxText = "СТРИК " + days + "!";
+            Sound.Event("box");
+            happyUntil = Environment.TickCount + 3000;
+            boxFxUntil = Environment.TickCount + 3000;
+            Balloon("loot", "Стрик: " + days + " " + DaysWord(days) + " подряд!",
+                "Награда за ежедневный заход: +1 лутбокс" + (gold > 0 ? " и золотой лутбокс" : "") + ".");
+        }
+
+        static string DaysWord(int n)
+        {
+            int m = n % 100, d = n % 10;
+            if (m >= 11 && m <= 14) return "дней";
+            return d == 1 ? "день" : d >= 2 && d <= 4 ? "дня" : "дней";
+        }
+
+        // shown in the quests window under the daily quests
+        public static string StreakWord(int n) { return DaysWord(n); }
 
         // kind decides what a click on the balloon opens
         void Balloon(string kind, string title, string text)

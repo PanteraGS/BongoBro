@@ -8,7 +8,7 @@ namespace BongoBro
     public static partial class Art
     {
         const float EyeY = 146, EyeL = 154, EyeR = 206;
-        const int EyeNormal = 0, EyeClosed = 1, EyeHappy = 2, EyeHeart = 3, EyeStar = 4, EyeFire = 5, EyeNeon = 6;
+        const int EyeNormal = 0, EyeClosed = 1, EyeHappy = 2, EyeHeart = 3, EyeStar = 4, EyeFire = 5, EyeNeon = 6, EyeHypno = 7, EyeVoid = 8;
 
         static readonly PointF[] Freckles = {
             new PointF(140, 162), new PointF(146, 166), new PointF(136, 168), new PointF(151, 161), new PointF(143, 172),
@@ -90,6 +90,10 @@ namespace BongoBro
                     Glow(g, EyeL, EyeY + 6, 28, 24, Color.FromArgb(255, 110, 20), 90);
                     Glow(g, EyeR, EyeY + 6, 28, 24, Color.FromArgb(255, 110, 20), 90);
                     break;
+                case "fc_void":
+                    Glow(g, EyeL, EyeY + 6, 26, 22, Color.FromArgb(120, 60, 220), 80);
+                    Glow(g, EyeR, EyeY + 6, 26, 22, Color.FromArgb(120, 60, 220), 80);
+                    break;
             }
         }
 
@@ -119,6 +123,8 @@ namespace BongoBro
                 case "fc_stars": mode = EyeStar; break;
                 case "fc_fireeyes": mode = EyeFire; break;
                 case "fc_neon": mode = EyeNeon; break;
+                case "fc_hypno": mode = EyeHypno; break;
+                case "fc_void": mode = EyeVoid; break;
             }
             int left = mode, right = mode;
             if (p.Face == "fc_wink") right = EyeHappy;
@@ -148,10 +154,11 @@ namespace BongoBro
             Color top = Color.FromArgb(70, 100, 130), bot = Color.FromArgb(150, 182, 206), pupil = Color.FromArgb(24, 30, 40);
             if (mode == EyeFire) { top = Color.FromArgb(170, 30, 0); bot = Color.FromArgb(255, 220, 80); pupil = Color.FromArgb(90, 10, 0); }
             if (mode == EyeNeon) { top = Hsv(t * 90, 0.9f, 0.45f); bot = Hsv(t * 90 + 50, 0.6f, 1f); pupil = Hsv(t * 90, 0.9f, 0.2f); }
-            if (mode == EyeFire || mode == EyeNeon)
+            if (mode == EyeVoid) { top = Color.FromArgb(70, 40, 140); bot = Color.FromArgb(170, 120, 255); pupil = Color.FromArgb(230, 210, 255); }
+            if (mode == EyeFire || mode == EyeNeon || mode == EyeVoid)
             {
                 float pulse = 0.7f + 0.3f * Sin(t * 5);
-                Glow(g, cx, cy, 24, 22, mode == EyeFire ? Color.FromArgb(255, 140, 20) : Hsv(t * 90, 0.8f, 1f), (int)((mode == EyeFire ? 170 : 90) * pulse));
+                Glow(g, cx, cy, 24, 22, mode == EyeFire ? Color.FromArgb(255, 140, 20) : mode == EyeVoid ? Color.FromArgb(150, 80, 255) : Hsv(t * 90, 0.8f, 1f), (int)((mode == EyeFire ? 170 : 110) * pulse));
             }
             // narrow almond eye with a heavy upper lid
             float o = outer;
@@ -160,7 +167,7 @@ namespace BongoBro
                 e.AddBezier(cx - 14 * o, cy + 1, cx - 8 * o, cy - 8, cx + 7 * o, cy - 8, cx + 14 * o, cy - 2);
                 e.AddBezier(cx + 14 * o, cy - 2, cx + 7 * o, cy + 7, cx - 7 * o, cy + 7, cx - 14 * o, cy + 1);
                 e.CloseFigure();
-                Fill(g, Color.FromArgb(250, 248, 246), e);
+                Fill(g, mode == EyeVoid ? Color.FromArgb(26, 16, 44) : Color.FromArgb(250, 248, 246), e);
                 GraphicsState st = g.Save();
                 g.SetClip(e, CombineMode.Intersect);
                 if (mode == EyeHeart)
@@ -169,6 +176,22 @@ namespace BongoBro
                     {
                         Grad(g, h, Color.FromArgb(255, 120, 160), Color.FromArgb(214, 30, 80));
                         Stroke(g, Color.FromArgb(140, 10, 50), 1.2f, h);
+                    }
+                }
+                else if (mode == EyeHypno)
+                {
+                    // static concentric arcs read as a hypnotic spiral even without animation
+                    using (GraphicsPath ir = new GraphicsPath())
+                    {
+                        ir.AddEllipse(cx - 7.5f, cy - 7, 15, 15);
+                        Fill(g, Color.FromArgb(240, 230, 255), ir);
+                        Stroke(g, Color.FromArgb(90, 50, 160), 1.2f, ir);
+                    }
+                    for (int i = 0; i < 3; i++)
+                    {
+                        float r = 2.4f + i * 2.6f;
+                        using (Pen sp = P(i % 2 == 0 ? Color.FromArgb(130, 70, 210) : Color.FromArgb(190, 150, 240), 1.8f))
+                            g.DrawArc(sp, cx - r, cy + 0.5f - r, r * 2, r * 2, i * 120, 260);
                     }
                 }
                 else
@@ -185,6 +208,11 @@ namespace BongoBro
                             Grad(g, s, Color.FromArgb(255, 246, 150), Color.FromArgb(255, 190, 30));
                             Stroke(g, Color.FromArgb(170, 110, 0), 0.8f, s);
                         }
+                    else if (mode == EyeVoid)
+                    {
+                        Glow(g, cx, cy + 0.5f, 10, 10, Color.FromArgb(170, 110, 255), 220);
+                        FillEl(g, pupil, cx - 3, cy - 2.5f, 6, 6);
+                    }
                     else FillEl(g, pupil, cx - 3.4f, cy - 3, 6.8f, 6.8f);
                 }
                 FillEl(g, A(235, Color.White), cx - 4, cy - 4.5f, 3.4f, 3.4f);
@@ -215,6 +243,12 @@ namespace BongoBro
                     Stroke(g, HairDark, 1.6f, b);
                 }
             }
+            if (p.Face == "fc_unibrow")
+                using (GraphicsPath u = RR(new RectangleF(166, 127 + dy, 28, 9), 4))
+                {
+                    Fill(g, HairDark, u);
+                    Stroke(g, HairDark, 1.6f, u);
+                }
         }
 
         static void DrawNose(Graphics g, Pose p)
@@ -335,6 +369,13 @@ namespace BongoBro
                 case "fc_fireeyes":
                     Bez(g, line, 2.6f, 168, 187, 176, 184, 186, 184, 194, 187);
                     return;
+                case "fc_unibrow":
+                    Bez(g, line, 2.6f, 170, 191, 177, 186, 185, 186, 192, 190);
+                    return;
+                case "fc_hypno":
+                    Bez(g, line, 2.4f, 166, 187, 172, 182, 177, 191, 182, 186);
+                    Bez(g, line, 2.4f, 182, 186, 187, 182, 191, 190, 196, 186);
+                    return;
             }
             // calm, slightly lopsided closed mouth
             Line(g, A(90, SkinDeep), 1.4f, 180, 176, 180, 181);
@@ -419,6 +460,35 @@ namespace BongoBro
                         Sparkle(g, 124 + ph * 112, 150 + Sin(ph * Math.PI * 2) * 30, 4 * Sin(ph * Math.PI), Hsv(t * 90 + 120, 0.6f, 1f));
                         break;
                     }
+                case "fc_bandaid":
+                    {
+                        GraphicsState st = g.Save();
+                        g.TranslateTransform(138, 167);
+                        g.RotateTransform(-24);
+                        using (GraphicsPath b = RR(new RectangleF(-11, -4.5f, 22, 9), 4.5f))
+                        {
+                            Fill(g, Color.FromArgb(242, 206, 162), b);
+                            Stroke(g, Color.FromArgb(170, 122, 88), 1.2f, b);
+                        }
+                        using (GraphicsPath pad = RR(new RectangleF(-4.5f, -3, 9, 6), 2)) Fill(g, Color.FromArgb(252, 230, 198), pad);
+                        FillEl(g, Color.FromArgb(190, 148, 108), -8, -1.4f, 1.8f, 1.8f);
+                        FillEl(g, Color.FromArgb(190, 148, 108), 6.4f, -1.4f, 1.8f, 1.8f);
+                        g.Restore(st);
+                        break;
+                    }
+                case "fc_void":
+                    // dark wisps drifting up from the eyes
+                    for (int k = 0; k < 2; k++)
+                    {
+                        float cx = k == 0 ? EyeL : EyeR;
+                        for (int i = 0; i < 3; i++)
+                        {
+                            float ph = (t * 0.5f + i / 3f + k * 0.5f) % 1f;
+                            float x = cx - 8 + i * 8 + Sin(t * 2 + i) * 2, y = EyeY + 10 - ph * 26;
+                            FillEl(g, A((int)(140 * (1 - ph)), Color.FromArgb(70, 40, 130)), x - 2, y - 2, 4, 4);
+                        }
+                    }
+                    break;
             }
         }
     }

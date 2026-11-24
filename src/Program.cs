@@ -90,6 +90,13 @@ namespace BongoBro
             return f;
         }
 
+        static ShopForm ExchangeShop()
+        {
+            ShopForm f = new ShopForm();
+            f.ShowExchangeTab();
+            return f;
+        }
+
         static ShopForm PetsShop()
         {
             ShopForm f = new ShopForm();
@@ -113,8 +120,8 @@ namespace BongoBro
             if (which == "pets")
             {
                 // in memory only: own some pets at different stages and open the pets tab
-                string[] pets = { "pet_cat", "pet_duck", "pet_fox", "pet_corgi", "pet_dragon", "pet_unicorn" };
-                long[] xp = { 0, 3120, 7400, 18650, 20000, 64000 };
+                string[] pets = { "pet_cat", "pet_duck", "pet_turtle", "pet_corgi", "pet_dragon", "pet_phoenix", "pet_unicorn" };
+                long[] xp = { 0, 3120, 7400, 18650, 20000, 64000, 9000 };
                 for (int i = 0; i < pets.Length; i++) { Game.S.Owned.Add(pets[i]); Game.S.PetXp[pets[i]] = xp[i]; }
             }
             if (which == "sets-pets" || which == "psets-pets")
@@ -126,11 +133,13 @@ namespace BongoBro
                 which = which == "sets-pets" ? "sets" : "psets";
             }
             if (which == "loot-ny") { Game.S.GoldBoxes = 1; Game.S.NyBoxes = 2; which = "loot"; }
+            if (which == "exchange") Game.S.Shards = 1234;
             if (which == "nyshop") NewYear.DevOverride = true;
             if (Characters.Preview != null) Game.S.Character = Characters.Preview;
             Form f = which == "loot" ? (Form)new LootForm() : which == "shop" ? (Form)new ShopForm()
                 : which == "update" ? (Form)new UpdateForm() : which == "board" ? (Form)new LeaderboardForm()
                 : which == "dev" ? (Form)new DevForm(null) : which == "sets" ? (Form)SetsShop() : which == "psets" ? (Form)SetsShop(true) : which == "quests" ? (Form)new QuestsForm() : which == "stats" ? (Form)new StatsForm()
+                : which == "exchange" ? (Form)ExchangeShop()
                 : which == "nyshop" ? (Form)NewYearShop() : which == "pets" ? (Form)PetsShop() : new AchievementsForm();
             f.StartPosition = FormStartPosition.Manual;
             f.Location = new Point(-5000, -5000);

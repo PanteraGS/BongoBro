@@ -63,6 +63,8 @@ namespace BongoBro
             { "pet_panda", new float[] { -48, -19, 28, 0 } },
             { "pet_owl", new float[] { -46, -21, 24, 0 } },
             { "pet_axolotl", new float[] { -44, -19, 26, 0 } },
+            { "pet_turtle", new float[] { -25, -10, 0, 11 } },
+            { "pet_phoenix", new float[] { -40, -20, 20, 0 } },
             { "pet_corgi", new float[] { -46, -21, 26, 0 } },
             { "pet_melon", new float[] { -40, -6, 0, 0 } },
             { "pet_robot", new float[] { -56, -22, 22, 0 } },
@@ -159,6 +161,8 @@ namespace BongoBro
                 case "pet_panda": Panda(g, sleep); break;
                 case "pet_owl": Owl(g, t, sleep); break;
                 case "pet_axolotl": Axolotl(g, t, sleep); break;
+                case "pet_turtle": Turtle(g, sleep); break;
+                case "pet_phoenix": Phoenix(g, t, sleep); break;
                 case "pet_corgi": Dog(g, Color.FromArgb(232, 150, 70), false, t, sleep); break;
                 case "pet_melon": MiniMelon(g, sleep); break;
                 case "pet_robot": Robot(g, t, sleep); break;
@@ -175,6 +179,60 @@ namespace BongoBro
 
         // ---------- shared bits ----------
         static readonly Color PetInk = Color.FromArgb(52, 38, 34);
+
+        static void Turtle(Graphics g, bool sleep)
+        {
+            Color shell = Color.FromArgb(110, 150, 70), shellD = Color.FromArgb(70, 100, 44), skin = Color.FromArgb(150, 210, 110);
+            FillEl(g, skin, -21, -8, 10, 7);
+            FillEl(g, skin, 11, -8, 10, 7);
+            using (GraphicsPath sh = new GraphicsPath())
+            {
+                sh.AddBezier(-24, -4, -22, -30, 22, -30, 24, -4);
+                sh.AddLine(24, -4, -24, -4);
+                sh.CloseFigure();
+                Grad(g, sh, Mix(shell, Color.White, 0.2f), shellD);
+                Stroke(g, PetInk, 1.8f, sh);
+            }
+            using (Pen p = P(A(130, shellD), 1.3f))
+            {
+                g.DrawEllipse(p, -8, -22, 16, 13);
+                g.DrawLine(p, -8, -16, -20, -12);
+                g.DrawLine(p, 8, -16, 20, -12);
+            }
+            Line(g, PetInk, 2f, -24, -4, 24, -4);
+            // head peeking out on the right
+            Blob(g, new RectangleF(3, -25, 17, 15), skin);
+            PetEyes(g, 8, 15, -18, sleep, 1.7f);
+            Cheeks(g, 5, 17, -13);
+        }
+
+        static void Phoenix(Graphics g, float t, bool sleep)
+        {
+            Color body = Color.FromArgb(240, 110, 40), wing = Color.FromArgb(228, 70, 40), gold = Color.FromArgb(255, 200, 80);
+            if (!sleep) Glow(g, 0, -20, 30, 28, Color.FromArgb(255, 150, 50), 90);
+            // a tail of small flames behind the body
+            if (!sleep)
+                for (int i = 0; i < 3; i++)
+                    Flame(g, -10 + i * 10, -2, 14 + (i % 2) * 6, 4.5f, t, 40 + i, false);
+            for (int k = 0; k < 2; k++)
+            {
+                float s = k == 0 ? 1 : -1;
+                using (GraphicsPath w = new GraphicsPath())
+                {
+                    w.AddBezier(-12 * s, -26, -30 * s, -32, -33 * s, -14, -20 * s, -7);
+                    w.AddBezier(-20 * s, -7, -14 * s, -12, -12 * s, -18, -12 * s, -26);
+                    w.CloseFigure();
+                    Grad(g, w, Mix(wing, Color.White, 0.15f), Mix(wing, Color.Black, 0.15f));
+                    Stroke(g, PetInk, 1.6f, w);
+                }
+            }
+            Blob(g, new RectangleF(-14, -40, 28, 38), body);
+            FillEl(g, gold, -8, -24, 16, 18);
+            Tri(g, Color.FromArgb(255, 90, 40), new PointF(-4, -39), new PointF(0, -52), new PointF(4, -39));
+            PetEyes(g, -5, 5, -30, sleep, 2.4f);
+            Tri(g, Color.FromArgb(255, 190, 60), new PointF(-4, -26), new PointF(4, -26), new PointF(0, -20));
+            Cheeks(g, -9, 9, -23);
+        }
 
         static void Blob(Graphics g, RectangleF r, Color c)
         {

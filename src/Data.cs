@@ -29,37 +29,60 @@ namespace BongoBro
         public static readonly double[] Chances = { 0.62, 0.26, 0.10, 0.02 };
         public static readonly Slot[] Slots = { Slot.Hat, Slot.Glasses, Slot.Gloves, Slot.Face, Slot.Theme, Slot.Pet };
 
+        // A duplicate from a loot box turns into shards; shards buy specific items on the exchange tab.
+        public static int ShardValue(Rarity r)
+        {
+            switch (r)
+            {
+                case Rarity.Rare: return 25;
+                case Rarity.Legendary: return 60;
+                case Rarity.Immortal: return 150;
+                default: return 10;
+            }
+        }
+
+        public static int ShardPrice(Rarity r)
+        {
+            switch (r)
+            {
+                case Rarity.Rare: return 300;
+                case Rarity.Legendary: return 800;
+                case Rarity.Immortal: return 2000;
+                default: return 100;
+            }
+        }
+
         static Items()
         {
             Group(Slot.Hat,
-                new[] { "hat_beanie", "Серая бини", "hat_cap", "Красная кепка", "hat_bucket", "Панама", "hat_headband", "Спортивная повязка", "hat_flower", "Цветочек" },
-                new[] { "hat_pompom", "Шапка с помпоном", "hat_ushanka", "Ушанка", "hat_catears", "Кошачьи ушки", "hat_cowboy", "Ковбойская шляпа" },
-                new[] { "hat_tophat", "Цилиндр джентльмена", "hat_crown", "Золотая корона", "hat_viking", "Шлем викинга" },
-                new[] { "hat_firecrown", "Корона Инферно", "hat_halo", "Божественный нимб" });
+                new[] { "hat_beanie", "Серая бини", "hat_cap", "Красная кепка", "hat_bucket", "Панама", "hat_headband", "Спортивная повязка", "hat_flower", "Цветочек", "hat_bandana", "Бандана" },
+                new[] { "hat_pompom", "Шапка с помпоном", "hat_ushanka", "Ушанка", "hat_catears", "Кошачьи ушки", "hat_cowboy", "Ковбойская шляпа", "hat_headphones", "Наушники" },
+                new[] { "hat_tophat", "Цилиндр джентльмена", "hat_crown", "Золотая корона", "hat_viking", "Шлем викинга", "hat_wizard", "Шляпа волшебника" },
+                new[] { "hat_firecrown", "Корона Инферно", "hat_halo", "Божественный нимб", "hat_astral", "Астральная корона" });
             Group(Slot.Glasses,
-                new[] { "gl_round", "Круглые очки", "gl_square", "Очки хипстера", "gl_hearts", "Очки-сердечки", "gl_cateye", "Кошачий глаз", "gl_beach", "Пляжные очки" },
-                new[] { "gl_aviator", "Авиаторы", "gl_3d", "3D-очки", "gl_ski", "Лыжная маска", "gl_shutter", "Неоновые шторки" },
-                new[] { "gl_pixel", "Deal With It", "gl_monocle", "Монокль", "gl_steampunk", "Стимпанк-гогглы" },
-                new[] { "gl_laser", "Лазерный визор", "gl_galaxy", "Очки Галактики" });
+                new[] { "gl_round", "Круглые очки", "gl_square", "Очки хипстера", "gl_hearts", "Очки-сердечки", "gl_cateye", "Кошачий глаз", "gl_beach", "Пляжные очки", "gl_sport", "Спортивные очки" },
+                new[] { "gl_aviator", "Авиаторы", "gl_3d", "3D-очки", "gl_ski", "Лыжная маска", "gl_shutter", "Неоновые шторки", "gl_star", "Очки-звёзды" },
+                new[] { "gl_pixel", "Deal With It", "gl_monocle", "Монокль", "gl_steampunk", "Стимпанк-гогглы", "gl_vr", "VR-шлем" },
+                new[] { "gl_laser", "Лазерный визор", "gl_galaxy", "Очки Галактики", "gl_prism", "Радужный визор" });
             Group(Slot.Gloves,
-                new[] { "gv_knit", "Вязаные перчатки", "gv_garden", "Садовые перчатки", "gv_rubber", "Резиновые перчатки", "gv_medical", "Медицинские перчатки", "gv_striped", "Полосатые перчатки" },
-                new[] { "gv_leather", "Кожаные перчатки", "gv_fingerless", "Митенки", "gv_boxing", "Боксёрские перчатки", "gv_paw", "Кошачьи лапки" },
-                new[] { "gv_mickey", "Мультяшные перчатки", "gv_gold", "Золотые перчатки", "gv_knight", "Рыцарские латы" },
-                new[] { "gv_infinity", "Перчатка Бесконечности", "gv_plasma", "Плазменные перчатки" });
+                new[] { "gv_knit", "Вязаные перчатки", "gv_garden", "Садовые перчатки", "gv_rubber", "Резиновые перчатки", "gv_medical", "Медицинские перчатки", "gv_striped", "Полосатые перчатки", "gv_work", "Рабочие перчатки" },
+                new[] { "gv_leather", "Кожаные перчатки", "gv_fingerless", "Митенки", "gv_boxing", "Боксёрские перчатки", "gv_paw", "Кошачьи лапки", "gv_ninja", "Обмотки ниндзя" },
+                new[] { "gv_mickey", "Мультяшные перчатки", "gv_gold", "Золотые перчатки", "gv_knight", "Рыцарские латы", "gv_diamond", "Алмазные перчатки" },
+                new[] { "gv_infinity", "Перчатка Бесконечности", "gv_plasma", "Плазменные перчатки", "gv_stardust", "Перчатки звёздной пыли" });
             Group(Slot.Face,
-                new[] { "fc_blush", "Румянец", "fc_freckles", "Веснушки", "fc_wink", "Подмигивание", "fc_grin", "Улыбка до ушей", "fc_tongue", "Дразнилка" },
-                new[] { "fc_mustache", "Усы джентльмена", "fc_cat", "Кошачий грим", "fc_hearts", "Влюблённый взгляд", "fc_warpaint", "Боевая раскраска" },
-                new[] { "fc_clown", "Клоун", "fc_skull", "Сахарный череп", "fc_stars", "Звёздный взгляд" },
-                new[] { "fc_fireeyes", "Пламенный взгляд", "fc_neon", "Неоновый грим" });
+                new[] { "fc_blush", "Румянец", "fc_freckles", "Веснушки", "fc_wink", "Подмигивание", "fc_grin", "Улыбка до ушей", "fc_tongue", "Дразнилка", "fc_bandaid", "Пластырь" },
+                new[] { "fc_mustache", "Усы джентльмена", "fc_cat", "Кошачий грим", "fc_hearts", "Влюблённый взгляд", "fc_warpaint", "Боевая раскраска", "fc_unibrow", "Монобровь" },
+                new[] { "fc_clown", "Клоун", "fc_skull", "Сахарный череп", "fc_stars", "Звёздный взгляд", "fc_hypno", "Гипноз" },
+                new[] { "fc_fireeyes", "Пламенный взгляд", "fc_neon", "Неоновый грим", "fc_void", "Взгляд Бездны" });
             Group(Slot.Theme,
-                new[] { "th_snow", "Белоснежка", "th_mint", "Мятный", "th_peach", "Персик", "th_graphite", "Графит", "th_lavender", "Лаванда" },
-                new[] { "th_retro", "Ретро", "th_sakura", "Сакура", "th_ocean", "Океан", "th_matcha", "Матча" },
-                new[] { "th_marble", "Золото и мрамор", "th_cyber", "Киберпанк", "th_candy", "Конфетка" },
-                new[] { "th_rgb", "RGB Геймер", "th_cosmos", "Космос" });
+                new[] { "th_snow", "Белоснежка", "th_mint", "Мятный", "th_peach", "Персик", "th_graphite", "Графит", "th_lavender", "Лаванда", "th_choco", "Шоколад" },
+                new[] { "th_retro", "Ретро", "th_sakura", "Сакура", "th_ocean", "Океан", "th_matcha", "Матча", "th_lime", "Кислотный лайм" },
+                new[] { "th_marble", "Золото и мрамор", "th_cyber", "Киберпанк", "th_candy", "Конфетка", "th_sunset", "Закат" },
+                new[] { "th_rgb", "RGB Геймер", "th_cosmos", "Космос", "th_aurora", "Северное сияние" });
             Group(Slot.Pet,
                 new[] { "pet_cat", "Котик", "pet_hamster", "Хомяк", "pet_duck", "Утёнок", "pet_frog", "Лягушонок", "pet_penguin", "Пингвинёнок" },
-                new[] { "pet_fox", "Лисёнок", "pet_panda", "Панда", "pet_owl", "Совёнок", "pet_axolotl", "Аксолотль" },
-                new[] { "pet_corgi", "Корги", "pet_melon", "Мини-арбуз", "pet_robot", "Робот" },
+                new[] { "pet_fox", "Лисёнок", "pet_panda", "Панда", "pet_owl", "Совёнок", "pet_axolotl", "Аксолотль", "pet_turtle", "Черепашка" },
+                new[] { "pet_corgi", "Корги", "pet_melon", "Мини-арбуз", "pet_robot", "Робот", "pet_phoenix", "Феникс" },
                 new[] { "pet_dragon", "Дракончик", "pet_unicorn", "Единорожек" });
 
             // gear sets: 4 pieces each, a bonus effect when all are worn
@@ -313,6 +336,9 @@ namespace BongoBro
         public bool EventSounds = true, DayPhases = true;
         public long Keys, Clicks;
         public int Boxes, Opened, GoldBoxes;
+        // shards: the exchange currency duplicates turn into; ShardsSpent feeds the achievement
+        public int Shards;
+        public long ShardsSpent;
         public HashSet<string> Owned = new HashSet<string>();
         public HashSet<string> Achieved = new HashSet<string>();
         // best keys-per-minute, current daily streak and the last day the app ran (yyyy-MM-dd)
@@ -397,6 +423,8 @@ namespace BongoBro
                 sb.Append("topmost=").Append(TopMost ? "1" : "0").Append('\n');
                 sb.Append("counter=").Append(ShowCounter ? "1" : "0").Append('\n');
                 sb.Append("gold=").Append(GoldBoxes.ToString(ci)).Append('\n');
+                sb.Append("shards=").Append(Shards.ToString(ci)).Append('\n');
+                sb.Append("spent=").Append(ShardsSpent.ToString(ci)).Append('\n');
                 sb.Append("achieved=").Append(string.Join(",", new List<string>(Achieved).ToArray())).Append('\n');
                 sb.Append("bestkpm=").Append(BestKpm.ToString(ci)).Append('\n');
                 sb.Append("streak=").Append(Streak.ToString(ci)).Append('\n');
@@ -564,6 +592,8 @@ namespace BongoBro
                         case "topmost": d.TopMost = v == "1"; break;
                         case "counter": d.ShowCounter = v == "1"; break;
                         case "gold": int.TryParse(v, NumberStyles.Integer, ci, out d.GoldBoxes); break;
+                        case "shards": int.TryParse(v, NumberStyles.Integer, ci, out d.Shards); break;
+                        case "spent": long.TryParse(v, NumberStyles.Integer, ci, out d.ShardsSpent); break;
                         case "achieved":
                             foreach (string a in v.Split(',')) if (a.Trim().Length > 0) d.Achieved.Add(a.Trim());
                             break;
@@ -731,6 +761,9 @@ namespace BongoBro
             CheckAchievements();
         }
 
+        // Raised on every new day of the streak with the reward granted: days in a row, boxes, gold boxes.
+        public static event Action<int, int, int> StreakDay;
+
         // Counts consecutive calendar days the app was running.
         public static void TouchDay()
         {
@@ -741,8 +774,18 @@ namespace BongoBro
             S.Streak = S.LastDay == yesterday ? S.Streak + 1 : 1;
             S.LastDay = key;
             Quests.Refresh(S);
+            // coming back the next day pays: a box per day of the streak, a gold one every 7th
+            int boxes = 0, gold = 0;
+            if (S.Streak >= 2)
+            {
+                boxes = 1;
+                if (S.Streak % 7 == 0) gold = 1;
+                S.Boxes += boxes;
+                S.GoldBoxes += gold;
+            }
             Save();
             CheckAchievements();
+            if (boxes + gold > 0 && StreakDay != null) StreakDay(S.Streak, boxes, gold);
         }
 
         public static void CheckAchievements()
@@ -764,6 +807,7 @@ namespace BongoBro
             Item it = Items.RollNew(Rnd, S.Owned);
             isNew = S.Owned.Add(it.Id);
             if (it.Rarity == Rarity.Immortal) S.LuckyImm++;
+            if (!isNew) S.Shards += Items.ShardValue(it.Rarity);
             Quests.OnBoxOpened(S);
             Save();
             CheckAchievements();
@@ -780,6 +824,7 @@ namespace BongoBro
             List<Item> pool = fresh.Count > 0 ? fresh : imm;
             Item it = pool[Rnd.Next(pool.Count)];
             isNew = S.Owned.Add(it.Id);
+            if (!isNew) S.Shards += Items.ShardValue(it.Rarity);
             Quests.OnBoxOpened(S);
             Save();
             CheckAchievements();
@@ -792,10 +837,25 @@ namespace BongoBro
             S.Opened++;
             Item it = Items.RollNewYear(Rnd, S.Owned);
             isNew = S.Owned.Add(it.Id);
+            if (!isNew) S.Shards += Items.ShardValue(it.Rarity);
             Quests.OnBoxOpened(S);
             Save();
             CheckAchievements();
             return it;
+        }
+
+        // The exchange: a duplicate-free way to get a specific item (New Year collection excluded).
+        public static bool BuyWithShards(Item it)
+        {
+            if (it == null || it.NewYear || S.Owned.Contains(it.Id)) return false;
+            int price = Items.ShardPrice(it.Rarity);
+            if (S.Shards < price) return false;
+            S.Shards -= price;
+            S.ShardsSpent += price;
+            S.Owned.Add(it.Id);
+            Save();
+            CheckAchievements();
+            return true;
         }
 
         public static void Equip(Item it)
@@ -897,6 +957,10 @@ namespace BongoBro
             new Achievement("ach_streak30", "Железная воля", "Запускать BongoBro 30 дней подряд", 30, 3, false, s => s.Streak),
             new Achievement("ach_million", "Миллионер", "Нажать 1 000 000 клавиш", 1000000, 0, true, s => s.Keys),
             new Achievement("ach_top3", "Пьедестал", "Попасть в топ-3 лидерборда (от " + Game.TopMinPlayers + " игроков)", 1, 0, true, s => s.BestRank > 0 && s.BestRank <= 3 ? 1 : 0),
+            new Achievement("ach_shards", "Копилка", "Накопить 500 осколков за дубликаты", 500, 1, false, s => s.Shards),
+            new Achievement("ach_spender", "Транжира", "Потратить 1 000 осколков на обмен", 1000, 2, false, s => s.ShardsSpent),
+            new Achievement("ach_collect50", "Коллекционер II", "Собрать 50 разных предметов", 50, 2, false, s => s.Owned.Count),
+            new Achievement("ach_streak100", "Сто дней без перерыва", "Запускать BongoBro 100 дней подряд", 100, 0, true, s => s.Streak),
         };
 
         static long OwnedPets(SaveData s)

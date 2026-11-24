@@ -6,3 +6,5 @@
 icon.ico
 node_modules/
 .wrangler/
+# debug renders from "BongoBro.exe --shot"
+shots/

@@ -26,6 +26,10 @@ namespace BongoBro
                 case "gv_knight": GloveKnight(g, tx); return true;
                 case "gv_infinity": GloveInfinity(g, tx, t); return true;
                 case "gv_plasma": GlovePlasma(g, tx, t, seed); return true;
+                case "gv_work": GloveWork(g, tx); return true;
+                case "gv_ninja": GloveNinja(g, tx); return true;
+                case "gv_diamond": GloveDiamond(g, tx); return true;
+                case "gv_stardust": GloveStardust(g, tx, t); return true;
                 case "set_samurai_gloves": SamuraiGloves(g, tx); return true;
                 case "set_pirate_gloves": PirateGloves(g, tx); return true;
                 case "set_astro_gloves": AstroGloves(g, tx); return true;
@@ -298,6 +302,85 @@ namespace BongoBro
             }
         }
 
+        static void GloveWork(Graphics g, float tx)
+        {
+            Color c = Color.FromArgb(196, 152, 92), d = Color.FromArgb(110, 76, 38);
+            using (LinearGradientBrush b = VBrush(Mix(c, Color.White, 0.25f), c)) HandShape(g, tx, b, d, 2.4f);
+            // reinforced palm patch and knuckle strip
+            using (GraphicsPath pp = RR(new RectangleF(-11, -4, 22, 15), 6))
+            {
+                Fill(g, Color.FromArgb(150, 106, 56), pp);
+                Stroke(g, d, 1.4f, pp);
+            }
+            using (Pen st = new Pen(A(170, Color.FromArgb(250, 230, 190)), 1.1f))
+            {
+                st.DashStyle = DashStyle.Dash;
+                g.DrawLine(st, -8, 0, 8, 0);
+                g.DrawLine(st, -8, 7, 8, 7);
+            }
+            FillEl(g, Color.FromArgb(240, 130, 40), -14, -16, 28, 6);
+            FingerLines(g, A(170, d), 1.6f);
+            Cuff(g, Color.FromArgb(240, 130, 40), Color.FromArgb(150, 70, 10), 11);
+            Line(g, A(160, Color.FromArgb(150, 70, 10)), 1.3f, -14, 11.5f, 14, 11.5f);
+        }
+
+        static void GloveNinja(Graphics g, float tx)
+        {
+            Color c = Color.FromArgb(48, 50, 62), d = Color.FromArgb(20, 22, 30);
+            using (LinearGradientBrush b = VBrush(Mix(c, Color.White, 0.14f), c)) HandShape(g, tx, b, d, 2.4f);
+            // white hand wraps
+            using (GraphicsPath pp = PalmPath())
+            {
+                GraphicsState st = g.Save();
+                g.SetClip(pp, CombineMode.Intersect);
+                using (Pen w = P(Color.FromArgb(216, 218, 230), 2.4f))
+                    for (int i = 0; i < 4; i++) g.DrawLine(w, -18, -11 + i * 6, 18, -14 + i * 6);
+                g.Restore(st);
+            }
+            FingerLines(g, A(140, d), 1.4f);
+            Cuff(g, Color.FromArgb(150, 40, 48), Color.FromArgb(70, 14, 20), 11);
+            using (GraphicsPath s = Star(0, 2, 4, 1.8f, 5, -90)) Fill(g, Color.FromArgb(150, 40, 48), s);
+        }
+
+        static void GloveDiamond(Graphics g, float tx)
+        {
+            Color c = Color.FromArgb(170, 226, 255), d = Color.FromArgb(80, 140, 190);
+            using (LinearGradientBrush b = VBrush(Color.FromArgb(240, 252, 255), c)) HandShape(g, tx, b, d, 2.2f);
+            FillEl(g, A(180, Color.White), -10, -12, 11, 6);
+            FingerLines(g, A(160, d), 1.5f);
+            Gem(g, 0, -1, 6, Color.FromArgb(120, 220, 255));
+            Sparkle(g, -11, -13, 3.5f, Color.White);
+            Sparkle(g, 12, 5, 3, Color.White);
+            Cuff(g, Color.FromArgb(232, 246, 255), d, 11);
+        }
+
+        static void GloveStardust(Graphics g, float tx, float t)
+        {
+            float pulse = 0.7f + 0.3f * Sin(t * 3);
+            Color c = Color.FromArgb(36, 30, 84), d = Color.FromArgb(14, 10, 40);
+            Glow(g, 0, -2, 36, 34, Color.FromArgb(150, 120, 255), (int)(110 * pulse));
+            using (LinearGradientBrush b = VBrush(Mix(c, Color.White, 0.12f), c)) HandShape(g, tx, b, Color.FromArgb(190, 170, 255), 2f);
+            // twinkling star field on the palm
+            using (GraphicsPath pp = PalmPath())
+            {
+                GraphicsState st = g.Save();
+                g.SetClip(pp, CombineMode.Intersect);
+                Random rr = new Random(7);
+                for (int i = 0; i < 9; i++)
+                {
+                    float x = -15 + (float)rr.NextDouble() * 30, y = -17 + (float)rr.NextDouble() * 30;
+                    float tw = 0.5f + 0.5f * Sin(t * 3 + i * 1.3f);
+                    FillEl(g, A((int)(90 + 165 * tw), Color.White), x, y, 1.8f, 1.8f);
+                }
+                g.Restore(st);
+            }
+            FingerLines(g, A(140, Color.FromArgb(150, 130, 230)), 1.4f);
+            Cuff(g, Color.FromArgb(20, 16, 52), Color.FromArgb(170, 150, 255), 11);
+            float sp = (t * 0.7f) % 1f;
+            Sparkle(g, -14 + sp * 28, -22 + Sin(t * 2) * 3, 4.5f * Sin(sp * Math.PI), Color.FromArgb(220, 200, 255));
+            Sparkle(g, tx + 8, -8, 3 * (0.6f + 0.4f * Sin(t * 5)), Color.FromArgb(255, 230, 150));
+        }
+
         // ======================= GLASSES =======================
         public static void DrawGlasses(Graphics g, string id, float t)
         {
@@ -318,6 +401,10 @@ namespace BongoBro
                 case "gl_steampunk": GlSteampunk(g); break;
                 case "gl_laser": GlLaser(g, t); break;
                 case "gl_galaxy": GlGalaxy(g, t); break;
+                case "gl_sport": GlSport(g); break;
+                case "gl_star": GlStar(g); break;
+                case "gl_vr": GlVr(g, t); break;
+                case "gl_prism": GlPrism(g, t); break;
                 case "set_pirate_patch": PirateEyepatch(g); break;
                 case "set_melon_glasses": MelonGlasses(g); break;
                 case "ny_snowflake": SnowflakeGlasses(g); break;
@@ -653,6 +740,101 @@ namespace BongoBro
             Sparkle(g, 128 + sp * 104, 119 + Sin(sp * Math.PI * 2) * 4, 5 * Sin(sp * Math.PI), Hsv(hue, 0.5f, 1f));
         }
 
+        static void GlSport(Graphics g)
+        {
+            Color fr = Color.FromArgb(240, 96, 30);
+            Temples(g, fr, 3.5f, 128, 232, 140);
+            using (GraphicsPath l = new GraphicsPath())
+            {
+                l.AddBezier(126, 130, 152, 123, 208, 123, 234, 130);
+                l.AddBezier(234, 130, 231, 155, 208, 162, 180, 162);
+                l.AddBezier(180, 162, 152, 162, 129, 155, 126, 130);
+                l.CloseFigure();
+                using (LinearGradientBrush b = new LinearGradientBrush(new RectangleF(124, 122, 112, 42), Color.FromArgb(225, 90, 160, 220), Color.FromArgb(225, 20, 50, 110), 90f)) g.FillPath(b, l);
+                GraphicsState st = g.Save();
+                g.SetClip(l, CombineMode.Intersect);
+                using (SolidBrush hl = new SolidBrush(Color.FromArgb(80, 255, 255, 255)))
+                    g.FillPolygon(hl, new PointF[] { new PointF(150, 122), new PointF(166, 122), new PointF(140, 164), new PointF(124, 164) });
+                g.Restore(st);
+                Stroke(g, fr, 3.5f, l);
+            }
+            Line(g, fr, 4f, 172, 137, 188, 137);
+        }
+
+        static void GlStar(Graphics g)
+        {
+            Color gold = Color.FromArgb(255, 196, 40), dark = Color.FromArgb(170, 110, 10);
+            Temples(g, dark, 3f, 138, 222, 140);
+            foreach (float cx in new float[] { 154, 206 })
+                using (GraphicsPath s = Star(cx, 146, 21, 9.5f, 5, -90))
+                {
+                    using (LinearGradientBrush b = new LinearGradientBrush(new RectangleF(cx - 21, 125, 42, 42), Color.FromArgb(235, 255, 230, 120), Color.FromArgb(235, 250, 160, 20), 90f)) g.FillPath(b, s);
+                    Stroke(g, dark, 3f, s);
+                    FillEl(g, A(200, Color.White), cx - 8, 136, 6, 5);
+                }
+            Bez(g, dark, 3f, 173, 140, 177, 135, 183, 135, 187, 140);
+        }
+
+        static void GlVr(Graphics g, float t)
+        {
+            Color body = Color.FromArgb(34, 36, 46), ink = Color.FromArgb(12, 12, 18);
+            // strap around the head
+            using (GraphicsPath strap = RR(new RectangleF(112, 132, 136, 14), 7))
+            {
+                Fill(g, Color.FromArgb(24, 26, 34), strap);
+            }
+            using (GraphicsPath v = RR(new RectangleF(118, 120, 124, 46), 14))
+            {
+                Grad(g, v, Color.FromArgb(64, 68, 84), body);
+                GraphicsState st = g.Save();
+                g.SetClip(v, CombineMode.Intersect);
+                FillEl(g, A(50, Color.White), 136, 126, 50, 12);
+                float sx = 132 + (Sin(t * 1.8f) * 0.5f + 0.5f) * 96;
+                Glow(g, sx, 143, 16, 14, Color.FromArgb(90, 225, 255), 220);
+                Line(g, Color.FromArgb(200, 245, 255), 2.4f, sx, 127, sx, 159);
+                g.Restore(st);
+                Stroke(g, ink, 2.6f, v);
+            }
+            float blink = 0.5f + 0.5f * Sin(t * 4);
+            FillEl(g, A((int)(120 + 135 * blink), Color.FromArgb(120, 255, 120)), 228, 126, 5, 5);
+            Line(g, ink, 2f, 132, 166, 132, 172);
+            Line(g, ink, 2f, 228, 166, 228, 172);
+        }
+
+        static void GlPrism(Graphics g, float t)
+        {
+            float pulse = 0.7f + 0.3f * Sin(t * 4);
+            float hue = t * 50;
+            using (GraphicsPath v = new GraphicsPath())
+            {
+                v.AddBezier(122, 133, 150, 124, 210, 124, 238, 133);
+                v.AddLine(238, 133, 236, 157);
+                v.AddBezier(236, 157, 210, 163, 150, 163, 124, 157);
+                v.CloseFigure();
+                Glow(g, 180, 146, 94, 38, Hsv(hue, 0.8f, 1f), (int)(110 * pulse));
+                GlowPath(g, v, Hsv(hue + 60, 0.8f, 1f), pulse * 0.7f);
+                using (LinearGradientBrush b = new LinearGradientBrush(new RectangleF(120, 120, 120, 46), Hsv(hue, 0.75f, 0.9f), Hsv(hue + 160, 0.75f, 0.9f), 0f))
+                {
+                    ColorBlend cb = new ColorBlend();
+                    cb.Colors = new Color[] { Hsv(hue, 0.8f, 0.95f), Hsv(hue + 90, 0.8f, 0.85f), Hsv(hue + 200, 0.8f, 0.95f) };
+                    cb.Positions = new float[] { 0, 0.5f, 1 };
+                    b.InterpolationColors = cb;
+                    g.FillPath(b, v);
+                }
+                GraphicsState st = g.Save();
+                g.SetClip(v, CombineMode.Intersect);
+                using (SolidBrush hl = new SolidBrush(Color.FromArgb(70, 255, 255, 255)))
+                    g.FillPolygon(hl, new PointF[] { new PointF(146, 122), new PointF(168, 122), new PointF(140, 166), new PointF(118, 166) });
+                float sx = 130 + (Sin(t * 2.6f) * 0.5f + 0.5f) * 100;
+                Glow(g, sx, 143, 16, 24, Color.White, 180);
+                Line(g, Color.FromArgb(230, 255, 255, 255), 2f, sx, 124, sx, 162);
+                g.Restore(st);
+                Stroke(g, Hsv(hue + 40, 0.6f, 1f), 2f, v);
+            }
+            float sp = (t * 0.6f) % 1f;
+            Sparkle(g, 124 + sp * 112, 118 + Sin(sp * Math.PI * 2) * 5, 4.5f * Sin(sp * Math.PI), Hsv(hue + 120, 0.5f, 1f));
+        }
+
         // ======================= HATS =======================
         public static void DrawHat(Graphics g, string id, float t)
         {
@@ -673,6 +855,10 @@ namespace BongoBro
                 case "hat_viking": Viking(g); break;
                 case "hat_firecrown": FireCrown(g, t); break;
                 case "hat_halo": Halo(g, t); break;
+                case "hat_bandana": Bandana(g); break;
+                case "hat_headphones": Headphones(g); break;
+                case "hat_wizard": WizardHat(g); break;
+                case "hat_astral": AstralCrown(g, t); break;
                 case "set_samurai_band": SamuraiBand(g); break;
                 case "set_pirate_hat": PirateHat(g); break;
                 case "set_astro_helmet": AstroHelmet(g, t); break;
@@ -1152,6 +1338,139 @@ namespace BongoBro
             {
                 double a = t * 1.6 + k * Math.PI / 2;
                 Sparkle(g, 180 + Cos(a) * 52, y + Sin(a) * 11, 4.5f + 2 * Sin(t * 5 + k), Color.FromArgb(255, 230, 140));
+            }
+        }
+
+        static void Bandana(Graphics g)
+        {
+            Color c = Color.FromArgb(214, 48, 56), dark = Color.FromArgb(140, 20, 30), ink = Color.FromArgb(90, 12, 20);
+            // knot with a tail hanging at the side
+            using (GraphicsPath tail = new GraphicsPath())
+            {
+                tail.AddBezier(248, 92, 262, 100, 268, 118, 262, 136);
+                tail.AddLine(262, 136, 252, 132);
+                tail.AddBezier(252, 132, 256, 118, 250, 106, 242, 100);
+                tail.CloseFigure();
+                Fill(g, dark, tail);
+                Stroke(g, ink, 1.8f, tail);
+            }
+            using (GraphicsPath d = new GraphicsPath())
+            {
+                d.AddBezier(104, 104, 100, 52, 146, 30, 180, 30);
+                d.AddBezier(180, 30, 214, 30, 260, 52, 256, 104);
+                d.CloseFigure();
+                Grad(g, d, Mix(c, Color.White, 0.18f), c);
+                GraphicsState st = g.Save();
+                g.SetClip(d, CombineMode.Intersect);
+                using (SolidBrush dot = new SolidBrush(A(170, Color.FromArgb(255, 240, 220))))
+                    for (int i = 0; i < 12; i++)
+                    {
+                        float x = 116 + (i * 37) % 130, y = 40 + (i * 23) % 56;
+                        g.FillEllipse(dot, x, y, 4.4f, 4.4f);
+                    }
+                Glow(g, 148, 52, 26, 14, Color.White, 70);
+                g.Restore(st);
+                Stroke(g, ink, 2.6f, d);
+            }
+            FillEl(g, c, 240, 84, 18, 16);
+            using (Pen o = P(ink, 2f)) g.DrawEllipse(o, 240, 84, 18, 16);
+            using (GraphicsPath hem = RR(new RectangleF(100, 94, 160, 16), 7))
+            {
+                Fill(g, dark, hem);
+                Stroke(g, ink, 2.2f, hem);
+            }
+        }
+
+        static void Headphones(Graphics g)
+        {
+            Color c = Color.FromArgb(44, 46, 56), pad = Color.FromArgb(24, 26, 34), accent = Color.FromArgb(255, 122, 40);
+            // ear cups on the sides of the head
+            foreach (float cx in new float[] { 106, 254 })
+                using (GraphicsPath cup = RR(new RectangleF(cx - 13, 92, 26, 46), 12))
+                {
+                    Grad(g, cup, Mix(c, Color.White, 0.15f), c);
+                    Stroke(g, pad, 2.4f, cup);
+                }
+            foreach (float cx in new float[] { 106, 254 })
+                using (GraphicsPath ring = RR(new RectangleF(cx - 7, 100, 14, 30), 7))
+                {
+                    Fill(g, accent, ring);
+                    Stroke(g, pad, 1.6f, ring);
+                }
+            // headband over the top
+            Bez(g, pad, 16f, 106, 100, 126, 14, 234, 14, 254, 100);
+            Bez(g, c, 10f, 106, 100, 126, 16, 234, 16, 254, 100);
+            Bez(g, A(120, Color.White), 2f, 122, 66, 150, 28, 210, 28, 238, 66);
+        }
+
+        static void WizardHat(Graphics g)
+        {
+            Color c = Color.FromArgb(88, 60, 160), dark = Color.FromArgb(48, 30, 100), ink = Color.FromArgb(28, 16, 60);
+            using (GraphicsPath cone = new GraphicsPath())
+            {
+                cone.AddBezier(124, 98, 130, 58, 152, 24, 176, 6);
+                cone.AddBezier(176, 6, 190, -4, 204, 2, 200, 12);
+                cone.AddBezier(200, 12, 188, 18, 184, 30, 180, 44);
+                cone.AddBezier(180, 44, 196, 66, 220, 84, 236, 98);
+                cone.AddBezier(236, 98, 200, 106, 160, 106, 124, 98);
+                cone.CloseFigure();
+                Grad(g, cone, Mix(c, Color.White, 0.2f), dark);
+                GraphicsState st = g.Save();
+                g.SetClip(cone, CombineMode.Intersect);
+                using (SolidBrush b = new SolidBrush(Color.FromArgb(255, 214, 90)))
+                {
+                    using (GraphicsPath s1 = Star(160, 60, 6, 2.6f, 5, -90)) g.FillPath(b, s1);
+                    using (GraphicsPath s2 = Star(200, 80, 4.5f, 2f, 5, -90)) g.FillPath(b, s2);
+                    using (GraphicsPath s3 = Star(150, 88, 3.6f, 1.6f, 5, -90)) g.FillPath(b, s3);
+                }
+                using (Pen belt = P(Color.FromArgb(255, 200, 70), 7f)) g.DrawBezier(belt, 122, 92, 160, 99, 200, 99, 238, 92);
+                g.Restore(st);
+                Stroke(g, ink, 2.6f, cone);
+            }
+            using (GraphicsPath brim = new GraphicsPath())
+            {
+                brim.AddEllipse(96, 90, 168, 26);
+                Grad(g, brim, Mix(c, Color.White, 0.1f), dark);
+                Stroke(g, ink, 2.6f, brim);
+            }
+            Sparkle(g, 208, 8, 5, Color.FromArgb(255, 230, 150));
+        }
+
+        static void AstralCrown(Graphics g, float t)
+        {
+            float y = 34 + Sin(t * 1.8f) * 4;
+            float pulse = 0.7f + 0.3f * Sin(t * 3);
+            Glow(g, 180, y, 104, 42, Color.FromArgb(150, 110, 255), (int)(100 * pulse));
+            // a tilted orbit ring with stars and gems circling the head
+            using (Pen orbit = P(A(120, Color.FromArgb(190, 160, 255)), 1.6f))
+            {
+                orbit.DashStyle = DashStyle.Dot;
+                g.DrawEllipse(orbit, 112, y - 13, 136, 26);
+            }
+            for (int k = 0; k < 6; k++)
+            {
+                double a = t * 1.1 + k * Math.PI * 2 / 6;
+                float x = 180 + Cos(a) * 68, yy = y + Sin(a) * 13;
+                Color sc = Hsv(230 + k * 30 + t * 30, 0.7f, 1f);
+                if (k % 2 == 0)
+                {
+                    Glow(g, x, yy, 10, 10, sc, (int)(160 * pulse));
+                    using (GraphicsPath s = Star(x, yy, 7, 3, 5, -90 + t * 40))
+                    {
+                        Grad(g, s, Mix(sc, Color.White, 0.5f), sc);
+                        Stroke(g, Mix(sc, Color.Black, 0.35f), 1f, s);
+                    }
+                }
+                else
+                {
+                    Glow(g, x, yy, 8, 8, sc, (int)(140 * pulse));
+                    Gem(g, x, yy, 4, sc);
+                }
+            }
+            for (int k = 0; k < 4; k++)
+            {
+                double a = -t * 1.6 + k * Math.PI / 2;
+                Sparkle(g, 180 + Cos(a) * 46, y + Sin(a) * 9, 3.5f + 1.5f * Sin(t * 5 + k), Color.FromArgb(230, 220, 255));
             }
         }
     }

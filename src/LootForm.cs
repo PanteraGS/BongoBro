@@ -39,6 +39,7 @@ namespace BongoBro
             int now = Environment.TickCount;
             Art.Glow(g, 360, 250, 340, 200, st != St.Idle ? KindColor(rollKind) : Ui.Accent, 34);
             TitleBar(g, "ЛУТБОКСЫ");
+            Ui.TextR(g, "Осколки: " + Game.S.Shards + " ◆", Ui.F(14, true), Color.FromArgb(150, 225, 255), new RectangleF(W - 290, 12, 270, 26));
             if (st == St.Idle) Idle(g, t);
             else if (st == St.Rolling) Rolling(g, t, now);
             else ShowResult(g, t, now);
@@ -187,7 +188,7 @@ namespace BongoBro
             Ui.ItemCard(g, new RectangleF(250, 72, 220, 292), result, t, false, 0, false);
             g.Restore(gs);
             string msg = resultNew ? "НОВЫЙ ПРЕДМЕТ!  " + Items.SlotName(result.Slot)
-                : rollGold ? "Все immortal уже собраны!" : "Коллекция уже собрана целиком!";
+                : "Дубликат → +" + Items.ShardValue(result.Rarity) + " осколков";
             Ui.TextC(g, msg, Ui.F(21, true), resultNew ? Art.Mix(rc, Color.White, 0.2f) : Ui.Gold, new RectangleF(0, 370, W, 32));
             if (k < 1) return;
             bool equipped = Game.S.GetEquipped(result.Slot) == result.Id;

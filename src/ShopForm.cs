@@ -8,14 +8,17 @@ namespace BongoBro
     // Wardrobe: every item comes only from loot boxes.
     public class ShopForm : CustomForm
     {
-        // index into Items.Slots, or SetsTab for the gear sets page
-        const int SetsTab = -1, NewYearTab = -2;
+        // index into Items.Slots, or SetsTab / NewYearTab / ExchangeTab for the extra pages
+        const int SetsTab = -1, NewYearTab = -2, ExchangeTab = -3;
         int tab = 0;
         bool personal;   // sets page: personal sets instead of the common ones
+        int exchangePage, gridPage;
+        static readonly Color ShardColor = Color.FromArgb(150, 225, 255);
 
         public void ShowSetsTab() { tab = SetsTab; }
         public void ShowPersonalSets() { tab = SetsTab; personal = true; }
         public void ShowNewYearTab() { tab = NewYearTab; }
+        public void ShowExchangeTab() { tab = ExchangeTab; }
         public void ShowSlotTab(Slot sl) { tab = Array.IndexOf(Items.Slots, sl); }
 
         public ShopForm() : base(1160, 640, "BongoBro: гардероб") { }
@@ -24,7 +27,7 @@ namespace BongoBro
         {
             SaveData s = Game.S;
             TitleBar(g, "ГАРДЕРОБ");
-            Ui.TextR(g, "Коллекция: " + s.Owned.Count + " / " + Items.All.Count, Ui.F(15, true), Color.FromArgb(255, 220, 120), new RectangleF(W - 330, 10, 270, 30));
+            Ui.TextR(g, "Коллекция: " + s.Owned.Count + " / " + Items.All.Count + "   Осколки: " + s.Shards + " ◆", Ui.F(15, true), Color.FromArgb(255, 220, 120), new RectangleF(W - 480, 10, 420, 30));
 
             // left: character preview
             Ui.FillRR(g, new RectangleF(16, 62, 262, 562), 14, Ui.Panel);
@@ -65,14 +68,15 @@ namespace BongoBro
                 Game.Save();
             });
 
-            // tabs: one per slot, the gear sets and the New Year collection
-            int tabs = Items.Slots.Length + 2;
+            // tabs: one per slot, the gear sets, the New Year collection and the shard exchange
+            int tabs = Items.Slots.Length + 3;
             float tw = (856 - 8 * (tabs - 1)) / (float)tabs;
             for (int i = 0; i < tabs; i++)
             {
-                int idx = i < Items.Slots.Length ? i : i == Items.Slots.Length ? SetsTab : NewYearTab;
+                int idx = i < Items.Slots.Length ? i : i == Items.Slots.Length ? SetsTab : i == Items.Slots.Length + 1 ? NewYearTab : ExchangeTab;
                 string label;
                 if (idx == SetsTab) label = "Сеты";
+                else if (idx == ExchangeTab) label = "Обмен";
                 else if (idx == NewYearTab)
                 {
                     int owned = 0;
@@ -86,33 +90,82 @@ namespace BongoBro
                     foreach (Item it in all) if (s.Owned.Contains(it.Id)) owned++;
                     label = Items.SlotName(Items.Slots[i]) + " " + owned + "/" + all.Count;
                 }
-                Color tc = idx == SetsTab ? Ui.Gold : idx == NewYearTab ? Color.FromArgb(236, 64, 70) : Ui.Accent;
-                Button(g, new RectangleF(292 + i * (tw + 8), 62, tw, 38), label, tc, tab == idx, true, () => { tab = idx; });
+                Color tc = idx == SetsTab ? Ui.Gold : idx == NewYearTab ? Color.FromArgb(236, 64, 70) : idx == ExchangeTab ? ShardColor : Ui.Accent;
+                Button(g, new RectangleF(292 + i * (tw + 8), 62, tw, 38), label, tc, tab == idx, true, () => { tab = idx; gridPage = 0; });
             }
 
             if (tab == SetsTab) PaintSets(g, t, s);
             else if (tab == NewYearTab) PaintGrid(g, t, s, Items.NewYearItems());
+            else if (tab == ExchangeTab) PaintExchange(g, t, s);
             else PaintGrid(g, t, s, Items.OfSlotBase(Items.Slots[tab]));
             string foot = tab == NewYearTab
                 ? "Новогодние вещи выпадают только из новогодних лутбоксов " + NewYear.Period + (NewYear.Active ? "  •  событие идёт сейчас!" : "")
-                : "Каждые 2000 нажатий клавиш = лутбокс  •  новые вещи выпадают без повторов, пока коллекция не собрана";
-            Ui.TextC(g, foot, Ui.F(12, false), tab == NewYearTab ? Color.FromArgb(255, 160, 160) : Ui.Sub, new RectangleF(292, 600, 856, 24));
+                : tab == ExchangeTab
+                ? "Повторы из лутбоксов превращаются в осколки — здесь они обмениваются на любую недостающую вещь"
+                : "Каждые 2000 нажатий клавиш = лутбокс  •  новые вещи выпадают без повторов, пока коллекция не собрана  •  повторы дают осколки";
+            Ui.TextC(g, foot, Ui.F(12, false), tab == NewYearTab ? Color.FromArgb(255, 160, 160) : tab == ExchangeTab ? ShardColor : Ui.Sub, new RectangleF(292, 600, 856, 24));
+        }
+
+        // every item the player does not own yet (except the New Year collection), cheapest first
+        void PaintExchange(Graphics g, float t, SaveData s)
+        {
+            List<Item> missing = new List<Item>();
+            foreach (Item it in Items.All) if (!it.NewYear && !s.Owned.Contains(it.Id)) missing.Add(it);
+            missing.Sort(delegate (Item a, Item b) { return a.Rarity != b.Rarity ? a.Rarity.CompareTo(b.Rarity) : a.Slot.CompareTo(b.Slot); });
+            Ui.TextL(g, "Осколки: " + s.Shards + " ◆", Ui.F(17, true), ShardColor, 296, 110);
+            if (missing.Count == 0)
+            {
+                Ui.TextC(g, "Коллекция собрана целиком — обменивать нечего!", Ui.F(17, true), Ui.Fg, new RectangleF(292, 300, 856, 30));
+                Ui.TextC(g, "Дубликаты всё равно приносят осколки: пригодятся, когда выйдут новые вещи.", Ui.F(13, false), Ui.Sub, new RectangleF(292, 334, 856, 24));
+                return;
+            }
+            const int perPage = 14;
+            int pages = (missing.Count + perPage - 1) / perPage;
+            if (exchangePage >= pages) exchangePage = pages - 1;
+            if (exchangePage < 0) exchangePage = 0;
+            if (pages > 1)
+            {
+                Button(g, new RectangleF(W - 212, 106, 30, 28), "◀", Ui.Sub, false, exchangePage > 0, () => exchangePage--);
+                Ui.TextC(g, exchangePage + 1 + "/" + pages, Ui.F(13, true), Ui.Fg, new RectangleF(W - 180, 106, 54, 28));
+                Button(g, new RectangleF(W - 124, 106, 30, 28), "▶", Ui.Sub, false, exchangePage < pages - 1, () => exchangePage++);
+            }
+            int shown = Math.Min(missing.Count - exchangePage * perPage, perPage);
+            for (int k = 0; k < shown; k++)
+            {
+                Item it = missing[exchangePage * perPage + k];
+                RectangleF r = new RectangleF(292 + (k % 7) * 123.8f, 144 + (k / 7) * 228, 113, 222);
+                Ui.ItemCard(g, r, it, t + k * 0.37f, false, 40, Hover(r));
+                int price = Items.ShardPrice(it.Rarity);
+                bool afford = s.Shards >= price;
+                Button(g, new RectangleF(r.X + 8, r.Bottom - 36, r.Width - 16, 28), price + " ◆", afford ? ShardColor : Ui.Sub, afford, afford, () => Game.BuyWithShards(it));
+            }
         }
 
         void PaintGrid(Graphics g, float t, SaveData s, List<Item> list)
         {
-            for (int i = 0; i < list.Count; i++)
+            const int perPage = 14;
+            int pages = (list.Count + perPage - 1) / perPage;
+            if (gridPage >= pages) gridPage = pages - 1;
+            if (gridPage < 0) gridPage = 0;
+            int shown = Math.Min(list.Count - gridPage * perPage, perPage);
+            for (int k = 0; k < shown; k++)
             {
-                Item it = list[i];
-                RectangleF r = new RectangleF(292 + (i % 7) * 123.8f, 112 + (i / 7) * 242, 113, 232);
+                Item it = list[gridPage * perPage + k];
+                RectangleF r = new RectangleF(292 + (k % 7) * 123.8f, 112 + (k / 7) * 242, 113, 232);
                 bool owned = s.Owned.Contains(it.Id);
                 bool eq = s.GetEquipped(it.Slot) == it.Id;
-                Ui.ItemCard(g, r, it, t + i * 0.37f, !owned, 40, Hover(r));
+                Ui.ItemCard(g, r, it, t + k * 0.37f, !owned, 40, Hover(r));
                 RectangleF b = new RectangleF(r.X + 8, r.Bottom - 36, r.Width - 16, 28);
                 if (eq) Button(g, b, "Надето ✓", Ui.Good, true, true, () => Game.Unequip(it.Slot));
                 else if (owned) Button(g, b, "Надеть", Ui.Accent, false, true, () => Game.Equip(it));
                 else Button(g, b, it.NewYear ? "Новогодний" : "Из лутбокса", Ui.Sub, false, false, null);
                 if (it.Slot == Slot.Pet && owned) PetBadge(g, r, s, it.Id);
+            }
+            if (pages > 1)
+            {
+                Button(g, new RectangleF(W - 196, 594, 30, 28), "◀", Ui.Sub, false, gridPage > 0, () => gridPage--);
+                Ui.TextC(g, gridPage + 1 + "/" + pages, Ui.F(13, true), Ui.Fg, new RectangleF(W - 164, 594, 54, 28));
+                Button(g, new RectangleF(W - 108, 594, 30, 28), "▶", Ui.Sub, false, gridPage < pages - 1, () => gridPage++);
             }
         }
 
